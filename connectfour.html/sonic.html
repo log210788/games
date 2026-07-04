@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect 4 – Sonic the Hedgehog</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --p1: #1565C0;
+            --p2: #F9A825;
+            --board: #0D47A1;
+            --bg: #E3F2FD;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: linear-gradient(160deg, #90CAF9 0%, #E3F2FD 55%, #fff 100%);
+            margin: 0;
+            padding: 20px 10px 40px;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-family: 'Fredoka One', cursive;
+            font-size: 2rem;
+            color: #0D47A1;
+            margin: 0 0 4px;
+            letter-spacing: 1px;
+            text-shadow: 2px 2px 0 rgba(255,255,255,0.8);
+        }
+
+        .status-bar {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.6rem;
+            padding: 10px 36px;
+            border-radius: 50px;
+            margin-bottom: 18px;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+            transition: all 0.3s;
+        }
+        .p1-turn { color: var(--p1); border: 4px solid var(--p1); }
+        .p2-turn { color: var(--p2); border: 4px solid var(--p2); }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background: var(--board);
+            padding: 12px;
+            border-radius: 20px;
+            gap: 8px;
+            box-shadow: 0 10px 0 #0a3480, 0 12px 30px rgba(0,0,0,0.25);
+            overflow: hidden;
+        }
+
+        .board-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .column-numbers {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            padding: 0 12px;
+            margin-bottom: 6px;
+            width: 100%;
+        }
+
+        .col-num {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.6rem;
+            color: #0D47A1;
+            text-align: center;
+            background: white;
+            border-radius: 12px;
+            padding: 4px 0;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+            line-height: 1.2;
+            transition: transform 0.15s, background 0.15s;
+            cursor: pointer;
+            user-select: none;
+        }
+        .col-num:hover { background: #fffde7; transform: translateY(-3px); }
+        .col-num.full { color: #ccc; background: #f0f0f0; cursor: not-allowed; transform: none; }
+
+        .column {
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 8px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 12px;
+            transition: background 0.2s;
+        }
+        .column:hover { background: rgba(255,255,255,0.12); }
+
+        .slot {
+            width: 66px;
+            height: 66px;
+            border-radius: 50%;
+            background: #BBDEFB;
+            border: 3px solid rgba(0,0,0,0.1);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.2);
+        }
+        .slot.p1 { background: var(--p1) !important; box-shadow: 0 0 16px rgba(21,101,192,0.75), inset 0 -3px 6px rgba(0,0,0,0.2); }
+        .slot.p2 { background: var(--p2) !important; box-shadow: 0 0 16px rgba(249,168,37,0.75), inset 0 -3px 6px rgba(0,0,0,0.2); }
+
+        /* Sonic characters decoration */
+        .sonic-icons {
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            margin: 8px 0 16px;
+            flex-wrap: wrap;
+        }
+        .sonic-icon {
+            font-size: 2.2rem;
+            opacity: 0.75;
+            transition: transform 0.3s, opacity 0.3s;
+            cursor: default;
+        }
+        .sonic-icon:hover { transform: scale(1.3) rotate(12deg); opacity: 1; }
+
+        /* Difficulty bar */
+        .difficulty-bar {
+            display: flex;
+            gap: 0;
+            margin-bottom: 16px;
+            border-radius: 50px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+            border: 3px solid var(--board);
+        }
+        .diff-btn {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.1rem;
+            padding: 10px 28px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.25s;
+            background: white;
+            color: #888;
+        }
+        .diff-btn:hover { background: #E3F2FD; }
+        .diff-btn.active { background: var(--board); color: white; }
+
+        /* Overlay */
+        #overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5,15,50,0.9);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        #q-card {
+            background: white;
+            padding: 32px 40px 28px;
+            border-radius: 28px;
+            max-width: 520px;
+            width: 100%;
+            text-align: center;
+            border: 6px solid var(--board);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+            animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.7); opacity: 0; }
+            to   { transform: scale(1);   opacity: 1; }
+        }
+
+        .player-badge {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1rem;
+            padding: 5px 18px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 14px;
+            color: white;
+        }
+        .badge-p1 { background: var(--p1); }
+        .badge-p2 { background: var(--p2); color: #333; }
+
+        /* Large emoji display */
+        .emoji-display {
+            font-size: 68px;
+            width: 128px;
+            height: 128px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.28);
+            animation: bounce 2s infinite;
+            border: 4px solid rgba(255,255,255,0.45);
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        #q-text {
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #0D47A1;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        #q-answer {
+            font-size: 1.05rem;
+            color: #1565C0;
+            background: #E3F2FD;
+            border-radius: 12px;
+            padding: 8px 16px;
+            margin-bottom: 18px;
+            min-height: 28px;
+            font-weight: 700;
+            transition: opacity 0.3s;
+            line-height: 1.5;
+        }
+
+        .answer-btn {
+            background: none;
+            border: 2px solid #90CAF9;
+            color: #1565C0;
+            padding: 6px 20px;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 700;
+            cursor: pointer;
+            margin-bottom: 22px;
+            transition: all 0.2s;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .answer-btn:hover { background: #E3F2FD; border-color: var(--board); color: var(--board); }
+
+        .judge-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+        .btn {
+            padding: 14px 28px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            font-weight: 800;
+            font-family: 'Nunito', sans-serif;
+            transition: transform 0.15s, box-shadow 0.15s;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+        }
+        .btn:hover  { transform: translateY(-2px); box-shadow: 0 6px 0 rgba(0,0,0,0.15); }
+        .btn:active { transform: translateY(2px);  box-shadow: 0 2px 0 rgba(0,0,0,0.15); }
+        .btn-yes { background: #2ecc71; color: white; }
+        .btn-no  { background: #e0e0e0; color: #555; }
+
+        /* Win overlay */
+        #win-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5,15,50,0.93);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        #win-card {
+            background: white;
+            padding: 50px 60px;
+            border-radius: 30px;
+            text-align: center;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 6px solid var(--board);
+        }
+        #win-card h2 { font-family: 'Fredoka One', cursive; font-size: 3rem; margin: 0 0 10px; }
+        #win-card p  { font-size: 1.3rem; color: #555; margin-bottom: 20px; }
+        .win-icons { font-size: 2.4rem; margin-bottom: 20px; letter-spacing: 8px; }
+        .btn-restart { background: var(--board); color: white; padding: 16px 40px; font-size: 1.2rem; }
+
+        /* How to play */
+        .how-to-play {
+            position: fixed;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: white;
+            border-radius: 20px;
+            padding: 18px 16px;
+            width: 170px;
+            box-shadow: 0 6px 28px rgba(0,0,0,0.14);
+            border: 3px solid var(--board);
+            z-index: 100;
+            font-family: 'Nunito', sans-serif;
+        }
+        .htp-title {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1rem;
+            color: var(--board);
+            text-align: center;
+            margin-bottom: 12px;
+            border-bottom: 2px solid var(--board);
+            padding-bottom: 8px;
+        }
+        .htp-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 10px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #2c3e50;
+            line-height: 1.35;
+        }
+        .htp-num {
+            background: var(--board);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Fredoka One', cursive;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+        .htp-mini-board {
+            display: grid;
+            grid-template-columns: repeat(4, 14px);
+            gap: 3px;
+            background: var(--board);
+            padding: 4px;
+            border-radius: 6px;
+            margin: 8px auto 4px;
+            width: fit-content;
+        }
+        .htp-dot { width: 14px; height: 14px; border-radius: 50%; background: rgba(255,255,255,0.25); }
+        .htp-dot.s { background: #1565C0; }
+        .htp-dot.t { background: #F9A825; }
+        .htp-legend {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 10px;
+            font-size: 0.75rem;
+            font-weight: 800;
+        }
+
+        @keyframes pieceDrop {
+            from { transform: translateY(var(--drop-y)); }
+            to   { transform: translateY(0); }
+        }
+        .slot.dropping {
+            animation: pieceDrop 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        @media (max-width: 560px) {
+            .slot { width: 40px; height: 40px; }
+            .board { gap: 5px; padding: 8px; }
+            #q-text { font-size: 1.3rem; }
+            .sonic-icon { font-size: 1.8rem; }
+            .diff-btn { font-size: 0.9rem; padding: 8px 16px; }
+            .how-to-play { display: none; }
+            #win-card { padding: 36px 28px; }
+        }
+    </style>
+</head>
+<body>
+
+<h1>⚡ Connect 4 – Sonic the Hedgehog</h1>
+
+<div class="sonic-icons">
+    <span class="sonic-icon">🦔</span>
+    <span class="sonic-icon">🦊</span>
+    <span class="sonic-icon">💎</span>
+    <span class="sonic-icon">💍</span>
+    <span class="sonic-icon">🤖</span>
+    <span class="sonic-icon">⭐</span>
+    <span class="sonic-icon">🦇</span>
+    <span class="sonic-icon">🔥</span>
+</div>
+
+<div class="difficulty-bar">
+    <button class="diff-btn active" id="btn-easy" onclick="setDifficulty('easy')">⭐ Easy — Name the Character</button>
+    <button class="diff-btn" id="btn-hard" onclick="setDifficulty('hard')">🔥 Hard — Sonic Trivia</button>
+</div>
+
+<div id="status" class="status-bar p1-turn">🦔 Sonic's Turn!</div>
+
+<div class="board-wrapper">
+    <div class="column-numbers" id="col-nums">
+        <div class="col-num" onclick="handleColumnClick(0)">1</div>
+        <div class="col-num" onclick="handleColumnClick(1)">2</div>
+        <div class="col-num" onclick="handleColumnClick(2)">3</div>
+        <div class="col-num" onclick="handleColumnClick(3)">4</div>
+        <div class="col-num" onclick="handleColumnClick(4)">5</div>
+        <div class="col-num" onclick="handleColumnClick(5)">6</div>
+        <div class="col-num" onclick="handleColumnClick(6)">7</div>
+    </div>
+    <div class="board" id="board"></div>
+</div>
+
+<!-- Question Overlay -->
+<div id="overlay">
+    <div id="q-card">
+        <div id="player-badge" class="player-badge badge-p1">🦔 Sonic's Question</div>
+        <div class="emoji-display" id="q-emoji">🦔</div>
+        <div id="q-text">What is this called?</div>
+        <div id="q-answer"></div>
+        <button class="answer-btn" id="answer-btn" onclick="toggleAnswer()">💡 Show Answer</button>
+        <div class="judge-btns">
+            <button class="btn btn-no"  onclick="handleJudge(false)">❌ Try Again</button>
+            <button class="btn btn-yes" onclick="handleJudge(true)">✅ Correct!</button>
+        </div>
+    </div>
+</div>
+
+<!-- Win Overlay -->
+<div id="win-overlay">
+    <div id="win-card">
+        <h2 id="win-title">🎉 Sonic Wins!</h2>
+        <p id="win-msg">Gotta go fast — well done!</p>
+        <div class="win-icons" id="win-icons">⚡💙🦔</div>
+        <button class="btn btn-restart" onclick="location.reload()">🔄 Play Again</button>
+    </div>
+</div>
+
+<div class="how-to-play">
+    <div class="htp-title">📖 How to Play</div>
+    <div class="htp-step"><div class="htp-num">1</div><div>Pick a column (1–7)</div></div>
+    <div class="htp-step"><div class="htp-num">2</div><div>Answer the Sonic question</div></div>
+    <div class="htp-step"><div class="htp-num">3</div><div>Piece drops in!</div></div>
+    <div class="htp-step"><div class="htp-num">4</div><div>Connect 4 in a row to win!</div></div>
+    <div class="htp-mini-board">
+        <div class="htp-dot"></div><div class="htp-dot"></div><div class="htp-dot s"></div><div class="htp-dot"></div>
+        <div class="htp-dot"></div><div class="htp-dot s"></div><div class="htp-dot t"></div><div class="htp-dot"></div>
+        <div class="htp-dot s"></div><div class="htp-dot t"></div><div class="htp-dot t"></div><div class="htp-dot"></div>
+        <div class="htp-dot s"></div><div class="htp-dot s"></div><div class="htp-dot s"></div><div class="htp-dot s"></div>
+    </div>
+    <div class="htp-legend"><span>🔵 Sonic</span><span>🟡 Tails</span></div>
+</div>
+
+<script>
+    const ROWS = 6, COLS = 7;
+    let currentPlayer = 1;
+    let boardState = Array(COLS).fill(null).map(() => Array(ROWS).fill(null));
+    let activeCol = null;
+    let answerVisible = false;
+    let currentAnswer = '';
+    let difficulty = 'easy';
+
+    // ─── DIFFICULTY ───────────────────────────────────────────────────────────
+    function setDifficulty(mode) {
+        difficulty = mode;
+        document.getElementById('btn-easy').classList.toggle('active', mode === 'easy');
+        document.getElementById('btn-hard').classList.toggle('active', mode === 'hard');
+    }
+
+    // ─── CARD DATA ────────────────────────────────────────────────────────────
+    const cards = [
+        { emoji: '🦔', bg: '#1565C0', name: 'Sonic the Hedgehog',       desc: 'The fastest thing alive! He runs faster than the speed of sound.',    q: 'What color is Sonic the Hedgehog?',                     a: 'Blue! 💙' },
+        { emoji: '🦊', bg: '#E65100', name: 'Miles "Tails" Prower',      desc: "Sonic's best friend — he can fly using his two tails!",               q: 'How many tails does Tails have?',                       a: 'Two (2) tails! ✌️' },
+        { emoji: '🥊', bg: '#B71C1C', name: 'Knuckles the Echidna',      desc: 'The guardian of the Master Emerald on Angel Island!',                 q: 'What does Knuckles protect?',                           a: 'The Master Emerald 💎' },
+        { emoji: '🩷', bg: '#C2185B', name: 'Amy Rose',                  desc: 'She has a huge crush on Sonic and wields a giant hammer!',            q: "What is the name of Amy's giant hammer?",               a: 'The Piko Piko Hammer 🔨' },
+        { emoji: '🖤', bg: '#212121', name: 'Shadow the Hedgehog',       desc: 'The Ultimate Life Form — created by Professor Gerald Robotnik!',      q: 'What does Shadow call himself?',                        a: '"The Ultimate Life Form!" 💀' },
+        { emoji: '🥚', bg: '#E65100', name: 'Dr. Eggman',                desc: "Sonic's main villain — he wants to conquer the world with robots!",   q: "What is Dr. Eggman's real full name?",                  a: 'Dr. Ivo Robotnik 🤓' },
+        { emoji: '🤍', bg: '#546E7A', name: 'Silver the Hedgehog',       desc: 'He travels from 200 years in the future to save the world!',         q: 'What special power does Silver have?',                  a: 'Psychokinesis — he moves things with his mind! 🔮' },
+        { emoji: '🦇', bg: '#6A1B9A', name: 'Rouge the Bat',             desc: 'A treasure hunter and spy who is obsessed with precious gems!',      q: 'What does Rouge love to collect?',                      a: 'Jewels and precious gems 💍' },
+        { emoji: '🔥', bg: '#AD1457', name: 'Blaze the Cat',             desc: 'A princess from the Sol Dimension who can control fire!',            q: 'What special power does Blaze the Cat have?',           a: 'She can control fire (pyrokinesis)! 🔥' },
+        { emoji: '🐰', bg: '#EF6C00', name: 'Cream the Rabbit',          desc: 'A polite young rabbit — her best friend is a Chao named Cheese!',    q: "What is the name of Cream's Chao companion?",           a: 'Cheese the Chao 🧀' },
+        { emoji: '💍', bg: '#DAA520', name: 'Ring',                      desc: 'Sonic collects these golden rings — 100 of them earns an extra life!', q: "What happens to Sonic's rings when he gets hit?",      a: 'They fly out everywhere! He loses them all.' },
+        { emoji: '💎', bg: '#00838F', name: 'Chaos Emerald',             desc: 'There are 7 magical gems. Together they unlock ultimate power!',      q: 'How many Chaos Emeralds are there?',                    a: 'Seven (7)! ✨' },
+        { emoji: '🌿', bg: '#2E7D32', name: 'Green Hill Zone',           desc: "The iconic first stage from the very first Sonic game in 1991!",      q: 'In which year was the first Sonic the Hedgehog released?', a: '1991 🎮' },
+        { emoji: '🤖', bg: '#37474F', name: 'Metal Sonic',               desc: 'A robot copy of Sonic built by Dr. Eggman!',                         q: 'Who created Metal Sonic?',                              a: 'Dr. Eggman 🥚' },
+        { emoji: '⭐', bg: '#F57F17', name: 'Super Sonic',               desc: "Sonic's ultimate golden transformation — almost invincible!",         q: 'What does Sonic need to become Super Sonic?',           a: 'All 7 Chaos Emeralds 💎💎💎💎💎💎💎' },
+        { emoji: '🐣', bg: '#29B6F6', name: 'Chao',                      desc: 'Cute little creatures you can raise in the Chao Garden!',            q: 'In which Sonic game was Chao Garden first introduced?', a: 'Sonic Adventure (1998)! 🌸' },
+        { emoji: '🐊', bg: '#388E3C', name: 'Vector the Crocodile',      desc: 'The loud, music-loving leader of Team Chaotix!',                     q: 'What team is Vector the leader of?',                    a: 'Team Chaotix! 🕵️' },
+        { emoji: '🦎', bg: '#512DA8', name: 'Espio the Chameleon',       desc: 'A cool ninja chameleon from Team Chaotix!',                          q: 'What ninja ability does Espio have?',                   a: 'He can turn invisible! 🥷' },
+        { emoji: '🦅', bg: '#00695C', name: 'Jet the Hawk',              desc: 'The Legendary Wind Master — leader of the Babylon Rogues!',          q: 'What sport does Jet race against Sonic in?',            a: 'Extreme Gear racing! 🛹' },
+        { emoji: '🐱', bg: '#6D4C41', name: 'Big the Cat',               desc: "A gentle giant who loves fishing and his best friend Froggy!",       q: "What is Big the Cat's favourite hobby?",                a: 'Fishing! 🎣' },
+    ];
+
+    let deck = [];
+    function getNextCard() {
+        if (deck.length === 0) deck = cards.map((_, i) => i).sort(() => Math.random() - 0.5);
+        return cards[deck.pop()];
+    }
+
+    // ─── AUDIO ────────────────────────────────────────────────────────────────
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSound(type) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        if (type === 'correct') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(659, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(784, audioCtx.currentTime + 0.12);
+            osc.frequency.setValueAtTime(988, audioCtx.currentTime + 0.24);
+        } else {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+        }
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+    }
+
+    // ─── BOARD INIT ───────────────────────────────────────────────────────────
+    function init() {
+        const board = document.getElementById('board');
+        for (let c = 0; c < COLS; c++) {
+            const colDiv = document.createElement('div');
+            colDiv.className = 'column';
+            colDiv.onclick = () => handleColumnClick(c);
+            for (let r = 0; r < ROWS; r++) {
+                const slot = document.createElement('div');
+                slot.className = 'slot';
+                slot.id = `slot-${c}-${r}`;
+                colDiv.appendChild(slot);
+            }
+            board.appendChild(colDiv);
+        }
+    }
+
+    function updateColumnNumbers() {
+        document.querySelectorAll('.col-num').forEach((el, c) => {
+            el.classList.toggle('full', boardState[c].indexOf(null) === -1);
+        });
+    }
+
+    function handleColumnClick(c) {
+        if (boardState[c].indexOf(null) === -1) return;
+        activeCol = c;
+        answerVisible = false;
+        const card = getNextCard();
+
+        document.getElementById('q-text').innerText = difficulty === 'easy'
+            ? 'What is this character or item called?'
+            : card.q;
+
+        currentAnswer = difficulty === 'easy'
+            ? card.name + ' — ' + card.desc
+            : card.a;
+
+        document.getElementById('q-answer').innerText = '';
+        document.getElementById('answer-btn').innerText = '💡 Show Answer';
+
+        const emojiEl = document.getElementById('q-emoji');
+        emojiEl.textContent = card.emoji;
+        emojiEl.style.background = card.bg;
+
+        const badge = document.getElementById('player-badge');
+        badge.innerText = currentPlayer === 1 ? "🦔 Sonic's Question" : "🦊 Tails' Question";
+        badge.className = 'player-badge ' + (currentPlayer === 1 ? 'badge-p1' : 'badge-p2');
+
+        document.getElementById('overlay').style.display = 'flex';
+    }
+
+    function toggleAnswer() {
+        answerVisible = !answerVisible;
+        document.getElementById('q-answer').innerText = answerVisible ? currentAnswer : '';
+        document.getElementById('answer-btn').innerText = answerVisible ? '🙈 Hide Answer' : '💡 Show Answer';
+    }
+
+    function handleJudge(isCorrect) {
+        document.getElementById('overlay').style.display = 'none';
+        if (!isCorrect) { playSound('wrong'); return; }
+        playSound('correct');
+        const r = boardState[activeCol].indexOf(null);
+        boardState[activeCol][r] = currentPlayer;
+        const slot = document.getElementById(`slot-${activeCol}-${r}`);
+        const slotH = 74;
+        const dropRows = ROWS - r;
+        slot.style.setProperty('--drop-y', `-${dropRows * slotH}px`);
+        slot.className = `slot ${currentPlayer === 1 ? 'p1' : 'p2'} dropping`;
+        slot.addEventListener('animationend', () => slot.classList.remove('dropping'), { once: true });
+        updateColumnNumbers();
+
+        if (checkWin(activeCol, r)) {
+            setTimeout(() => showWin(currentPlayer), 300);
+            return;
+        }
+
+        currentPlayer = currentPlayer === 1 ? 2 : 1;
+        updateStatus();
+    }
+
+    function updateStatus() {
+        const s = document.getElementById('status');
+        s.innerText = currentPlayer === 1 ? "🦔 Sonic's Turn!" : "🦊 Tails' Turn!";
+        s.className = `status-bar ${currentPlayer === 1 ? 'p1-turn' : 'p2-turn'}`;
+    }
+
+    function showWin(player) {
+        const title = document.getElementById('win-title');
+        if (player === 1) {
+            title.innerText = '🦔 Sonic Wins!';
+            title.style.color = '#1565C0';
+            document.getElementById('win-msg').innerText = 'Gotta go fast — Sonic style! 🔵';
+            document.getElementById('win-icons').innerText = '⚡💙🦔';
+        } else {
+            title.innerText = '🦊 Tails Wins!';
+            title.style.color = '#F9A825';
+            document.getElementById('win-msg').innerText = 'Tails flies to victory! 🟡';
+            document.getElementById('win-icons').innerText = '✈️💛🦊';
+        }
+        document.getElementById('win-overlay').style.display = 'flex';
+    }
+
+    function checkWin(c, r) {
+        const p = boardState[c][r];
+        const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+        for (let [dc, dr] of dirs) {
+            let count = 1;
+            for (let i = 1; i < 4; i++) { if (boardState[c+dc*i]?.[r+dr*i] === p) count++; else break; }
+            for (let i = 1; i < 4; i++) { if (boardState[c-dc*i]?.[r-dr*i] === p) count++; else break; }
+            if (count >= 4) return true;
+        }
+        return false;
+    }
+
+    init();
+</script>
+</body>
+</html>

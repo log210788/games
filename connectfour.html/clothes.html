@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect 4 – Clothes Game 👚</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --p1: #ff4757;
+            --p2: #ffa502;
+            --board: #9b59b6;
+            --board-dark: #8e44ad;
+            --bg: #f9f5fc;
+            --shadow: rgba(0,0,0,0.12);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: var(--bg);
+            margin: 0;
+            padding: 20px 10px 40px;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-family: 'Fredoka One', cursive;
+            font-size: 2.2rem;
+            color: #4a154b;
+            margin: 0 0 10px;
+            text-shadow: 2px 2px 0 #f0e1f7;
+            letter-spacing: 1px;
+        }
+
+        .status-bar {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.6rem;
+            padding: 10px 36px;
+            border-radius: 50px;
+            margin-bottom: 18px;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+        .p1-turn { color: var(--p1); border: 4px solid var(--p1); }
+        .p2-turn { color: var(--p2); border: 4px solid var(--p2); }
+
+        .board-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .column-numbers {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            padding: 0 12px;
+            margin-bottom: 6px;
+            width: 100%;
+        }
+
+        .col-num {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.4rem;
+            color: #4a154b;
+            text-align: center;
+            background: white;
+            border-radius: 12px;
+            padding: 4px 0;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+            line-height: 1.2;
+            transition: transform 0.15s, background 0.15s;
+            cursor: pointer;
+            user-select: none;
+        }
+        .col-num:hover {
+            background: #fffbe6;
+            transform: translateY(-3px);
+        }
+        .col-num.full {
+            color: #ccc;
+            background: #f0f0f0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background: var(--board);
+            padding: 12px;
+            border-radius: 20px;
+            gap: 8px;
+            box-shadow: 0 10px 0 var(--board-dark), 0 12px 30px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 8px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 12px;
+            transition: background 0.2s;
+        }
+        .column:hover { background: rgba(255,255,255,0.15); }
+
+        .slot {
+            width: 66px;
+            height: 66px;
+            border-radius: 50%;
+            background: #fdf5ff;
+            border: 3px solid rgba(0,0,0,0.08);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.1);
+        }
+
+        .slot.red   { background: var(--p1) !important; box-shadow: 0 0 12px rgba(255,71,87,0.6), inset 0 -3px 6px rgba(0,0,0,0.2); }
+        .slot.yellow{ background: var(--p2) !important; box-shadow: 0 0 12px rgba(255,165,2,0.6), inset 0 -3px 6px rgba(0,0,0,0.2); }
+
+        @keyframes pieceDrop {
+            from { transform: translateY(var(--drop-y)); }
+            to   { transform: translateY(0); }
+        }
+        .slot.dropping {
+            animation: pieceDrop 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        /* Power-ups CSS */
+        .powerups-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 0 auto 20px;
+            width: 100%;
+            max-width: 650px;
+            flex-wrap: wrap;
+        }
+        .powerup-group {
+            background: white;
+            padding: 10px 18px;
+            border-radius: 18px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 3px solid #e0e6ed;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .powerup-group.active-group {
+            border-color: var(--board);
+            box-shadow: 0 4px 20px rgba(155, 89, 182, 0.18);
+            transform: scale(1.02);
+        }
+        .powerup-group.inactive-group {
+            opacity: 0.45;
+            pointer-events: none;
+            filter: grayscale(40%);
+        }
+        .powerup-title {
+            font-family: 'Fredoka One', cursive;
+            font-size: 0.95rem;
+            color: #4a154b;
+            margin-right: 4px;
+        }
+        .powerup-btn {
+            font-family: 'Nunito', sans-serif;
+            font-weight: 800;
+            font-size: 0.9rem;
+            padding: 8px 14px;
+            border: 2px solid;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .powerup-btn:active {
+            transform: scale(0.95);
+        }
+        .powerup-group-p1 .powerup-btn { border-color: var(--p1); color: var(--p1); }
+        .powerup-group-p1 .powerup-btn:hover:not(.used) { background: #fff5f5; transform: translateY(-2px); }
+        .powerup-group-p1 .powerup-btn.selected {
+            background: var(--p1) !important;
+            color: white !important;
+            box-shadow: 0 0 12px rgba(255,71,87,0.5);
+            animation: pulse-red 1.2s infinite alternate;
+        }
+        .powerup-group-p2 .powerup-btn { border-color: var(--p2); color: var(--p2); }
+        .powerup-group-p2 .powerup-btn:hover:not(.used) { background: #fffaf0; transform: translateY(-2px); }
+        .powerup-group-p2 .powerup-btn.selected {
+            background: var(--p2) !important;
+            color: white !important;
+            box-shadow: 0 0 12px rgba(255,165,2,0.5);
+            animation: pulse-yellow 1.2s infinite alternate;
+        }
+        
+        .powerup-btn.used {
+            background: #f1f5f9 !important;
+            border-color: #cbd5e1 !important;
+            color: #94a3b8 !important;
+            text-decoration: line-through;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+            opacity: 0.6;
+        }
+
+        @keyframes pulse-red {
+            from { box-shadow: 0 0 8px rgba(255,71,87,0.4); }
+            to { box-shadow: 0 0 16px rgba(255,71,87,0.8); }
+        }
+        @keyframes pulse-yellow {
+            from { box-shadow: 0 0 8px rgba(255,165,2,0.4); }
+            to { box-shadow: 0 0 16px rgba(255,165,2,0.8); }
+        }
+
+        /* Question Overlay */
+        #overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(40,15,50,0.85);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+            backdrop-filter: blur(4px);
+        }
+
+        #q-card {
+            background: white;
+            padding: 30px 30px 24px;
+            border-radius: 28px;
+            max-width: 520px;
+            width: 100%;
+            text-align: center;
+            border: 6px solid var(--board);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.7); opacity: 0; }
+            to   { transform: scale(1);   opacity: 1; }
+        }
+
+        .player-badge {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1rem;
+            padding: 4px 16px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 14px;
+            color: white;
+        }
+        .badge-red    { background: var(--p1); }
+        .badge-yellow { background: var(--p2); }
+
+        #q-text {
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #4a154b;
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+
+        #q-thai {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--board);
+            margin-bottom: 16px;
+        }
+
+        /* Choices Container styles */
+        .choice-container {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .choice-card {
+            border: 4px solid #f0e6f5;
+            border-radius: 20px;
+            padding: 12px 10px 10px;
+            cursor: pointer;
+            width: 185px;
+            height: 225px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .choice-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--board);
+            box-shadow: 0 8px 20px rgba(155, 89, 182, 0.15);
+        }
+        .choice-card-img {
+            max-width: 100%;
+            max-height: 120px;
+            object-fit: contain;
+            border-radius: 12px;
+        }
+        .choice-card-emoji {
+            font-size: 4.5rem;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+        }
+
+        .choice-btn-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+            max-width: 340px;
+            margin: 16px auto 8px;
+        }
+        .choice-text-btn {
+            padding: 12px 20px;
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.3rem;
+            background: white;
+            border: 3px solid #f0e6f5;
+            color: #4a154b;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.04);
+            text-align: center;
+        }
+        .choice-text-btn:hover {
+            border-color: var(--board);
+            color: var(--board);
+            transform: translateY(-2px);
+            background: #faf7fc;
+        }
+
+        /* Question Type 2 Center Card */
+        .q-center-card {
+            width: 200px;
+            height: 200px;
+            border: 4px solid #f0e6f5;
+            border-radius: 24px;
+            margin: 0 auto 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+            overflow: hidden;
+            padding: 12px;
+        }
+        .q-center-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 12px;
+        }
+        .q-center-emoji {
+            font-size: 5.5rem;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+        }
+        .q-center-placeholder {
+            width: 100%;
+            height: 100%;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+        }
+
+        /* Feedbacks Styles */
+        .feedback-title {
+            font-family: 'Fredoka One', cursive;
+            font-size: 2.4rem;
+            margin: 15px 0 5px;
+            letter-spacing: 0.5px;
+        }
+        .feedback-correct { color: #2ecc71; }
+        .feedback-incorrect { color: #ff4757; }
+        .feedback-text {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #555;
+            margin-bottom: 20px;
+        }
+        .feedback-anim {
+            font-size: 4rem;
+            animation: bounce 1.5s infinite;
+        }
+
+        /* Win Overlay */
+        #win-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(40,15,50,0.92);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        #win-card {
+            background: white;
+            padding: 50px 60px;
+            border-radius: 30px;
+            text-align: center;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 6px solid var(--board);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+        }
+        #win-card h2 { font-family: 'Fredoka One', cursive; font-size: 3rem; margin: 0 0 10px; }
+        #win-card p  { font-size: 1.3rem; color: #555; margin-bottom: 25px; font-weight: 800; }
+        .win-icons { font-size: 2.5rem; margin-bottom: 20px; }
+        .btn-restart { 
+            background: var(--board); 
+            color: white; 
+            padding: 16px 40px; 
+            font-size: 1.3rem; 
+            border: none;
+            border-radius: 50px;
+            font-family: 'Fredoka One', cursive;
+            cursor: pointer;
+            box-shadow: 0 5px 0 var(--board-dark);
+            transition: all 0.2s;
+        }
+        .btn-restart:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 0 var(--board-dark);
+        }
+
+        .how-to-play {
+            position: fixed;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: white;
+            border-radius: 20px;
+            padding: 18px 16px;
+            width: 170px;
+            box-shadow: 0 6px 28px rgba(0,0,0,0.1);
+            border: 3px solid var(--board);
+            z-index: 100;
+            font-family: 'Nunito', sans-serif;
+        }
+        .htp-title {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1rem;
+            color: var(--board);
+            text-align: center;
+            margin-bottom: 12px;
+            border-bottom: 2px solid var(--board);
+            padding-bottom: 8px;
+        }
+        .htp-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 10px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #2c3e50;
+            line-height: 1.35;
+        }
+        .htp-num {
+            background: var(--board);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Fredoka One', cursive;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+
+        .header-decor {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 12px;
+            font-size: 2.2rem;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        @media (max-width: 560px) {
+            .slot { width: 42px; height: 42px; }
+            .board { gap: 5px; padding: 8px; }
+            #q-card { padding: 20px; }
+            #q-text { font-size: 1.3rem; }
+            .diff-btn { font-size: 0.9rem; padding: 8px 18px; }
+            .how-to-play { display: none; }
+            .powerups-container { gap: 10px; }
+            .powerup-group { padding: 6px 12px; gap: 6px; }
+            .powerup-title { font-size: 0.85rem; }
+            .powerup-btn { padding: 6px 10px; font-size: 0.8rem; }
+            .choice-card { width: 130px; height: 130px; }
+            .choice-card-emoji { font-size: 3.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header-decor">👗 👔 👟 👒</div>
+<h1>👚 Connect 4 – Clothes Game</h1>
+
+<div class="powerups-container">
+    <!-- Player 1 Power-ups -->
+    <div class="powerup-group powerup-group-p1 active-group" id="p1-powerups">
+        <span class="powerup-title">🔴 P1 Power</span>
+        <button class="powerup-btn" id="p1-bomb" onclick="selectPowerUp('bomb')">💣 Bomb</button>
+        <button class="powerup-btn" id="p1-double" onclick="selectPowerUp('double')">⚡ Double</button>
+        <button class="powerup-btn" id="p1-swap" onclick="selectPowerUp('swap')">🎨 Swap</button>
+    </div>
+    <!-- Player 2 Power-ups -->
+    <div class="powerup-group powerup-group-p2 inactive-group" id="p2-powerups">
+        <span class="powerup-title">🟡 P2 Power</span>
+        <button class="powerup-btn" id="p2-bomb" onclick="selectPowerUp('bomb')">💣 Bomb</button>
+        <button class="powerup-btn" id="p2-double" onclick="selectPowerUp('double')">⚡ Double</button>
+        <button class="powerup-btn" id="p2-swap" onclick="selectPowerUp('swap')">🎨 Swap</button>
+    </div>
+</div>
+
+<div class="status-bar p1-turn" id="status">🔴 Red Player's Turn</div>
+
+<div class="board-wrapper">
+    <div class="column-numbers" id="column-headers"></div>
+    <div class="board" id="board"></div>
+</div>
+
+<!-- How to play sidebar -->
+<div class="how-to-play">
+    <div class="htp-title">How To Play</div>
+    <div class="htp-step">
+        <div class="htp-num">1</div>
+        <div>Choose a column to drop your piece.</div>
+    </div>
+    <div class="htp-step">
+        <div class="htp-num">2</div>
+        <div>Answer the multiple choice question correctly.</div>
+    </div>
+    <div class="htp-step">
+        <div class="htp-num">3</div>
+        <div>Get it right to drop. Get it wrong to lose your turn!</div>
+    </div>
+    <div class="htp-step">
+        <div class="htp-num">4</div>
+        <div>Get 4 in a row to win!</div>
+    </div>
+</div>
+
+<!-- Question Dialog overlay -->
+<div id="overlay">
+    <div id="q-card">
+        <div class="player-badge badge-red" id="player-badge">🔴 Red's Question</div>
+        <div id="q-text">Which one is a shirt?</div>
+        <div id="q-thai">อันไหนคือเสื้อยืด?</div>
+        <div id="q-content-area"></div>
+    </div>
+</div>
+
+<!-- Winner dialog overlay -->
+<div id="win-overlay">
+    <div id="win-card">
+        <div class="win-icons">🏆 🎉 🥳</div>
+        <h2 id="win-title">Red Wins!</h2>
+        <p>Excellent job! You connected four in a row.</p>
+        <button class="btn-restart" onclick="restartGame()">Play Again! 🔄</button>
+    </div>
+</div>
+
+<!-- Load Clothes Script -->
+<script src="../clothes/clothes.js"></script>
+
+<script>
+    // Filter CLOTHES_DATA to only items that aren't the special "Wild Card"
+    const validClothes = CLOTHES_DATA.filter(item => item.w !== 'Wild Card');
+
+    const ROWS = 6, COLS = 7;
+    let currentPlayer = 1;
+    let boardState = Array(COLS).fill(null).map(() => Array(ROWS).fill(null));
+    let activeCol = null;
+    let lockSelection = false;
+
+    // Power-up state variables
+    let selectedPowerUp = null;
+    let doubleShotActive = false;
+    let powerupsState = {
+        1: { bomb: true, double: true, swap: true },
+        2: { bomb: true, double: true, swap: true }
+    };
+
+    // ─── AUDIO SYNTH ────────────────────────────────────────────────────────
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function playSound(type) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        if (type === 'correct') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(523, audioCtx.currentTime); // C5
+            osc.frequency.setValueAtTime(659, audioCtx.currentTime + 0.15); // E5
+        } else {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(220, audioCtx.currentTime); // Low buzz
+        }
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+    }
+
+    // ─── INIT GAME ──────────────────────────────────────────────────────────
+    function init() {
+        const board = document.getElementById('board');
+        board.innerHTML = '';
+        boardState = Array(COLS).fill(null).map(() => Array(ROWS).fill(null));
+
+        for (let c = 0; c < COLS; c++) {
+            const colDiv = document.createElement('div');
+            colDiv.className = 'column';
+            colDiv.onclick = () => handleColumnClick(c);
+            for (let r = 0; r < ROWS; r++) {
+                const slot = document.createElement('div');
+                slot.className = 'slot';
+                slot.id = `slot-${c}-${r}`;
+                colDiv.appendChild(slot);
+            }
+            board.appendChild(colDiv);
+        }
+
+        setupHeaders();
+        updatePowerUpsUI();
+        updateStatus();
+    }
+
+    // Randomize headers with clothes emojis
+    function setupHeaders() {
+        const headersDiv = document.getElementById('column-headers');
+        headersDiv.innerHTML = '';
+        const shuffledList = [...validClothes].sort(() => Math.random() - 0.5);
+        for (let c = 0; c < COLS; c++) {
+            const el = document.createElement('div');
+            el.className = 'col-num';
+            el.innerHTML = `${c + 1}<br>${shuffledList[c % shuffledList.length].emoji}`;
+            el.onclick = (e) => {
+                e.stopPropagation();
+                handleColumnClick(c);
+            };
+            headersDiv.appendChild(el);
+        }
+    }
+
+    function updateColumnNumbers() {
+        const nums = document.querySelectorAll('.col-num');
+        nums.forEach((el, c) => {
+            if (boardState[c].indexOf(null) === -1) {
+                el.classList.add('full');
+            } else {
+                el.classList.remove('full');
+            }
+        });
+    }
+
+    // ─── POWER UP UI MANAGEMENT ──────────────────────────────────────────────
+    function selectPowerUp(type) {
+        if (!powerupsState[currentPlayer][type]) return;
+        
+        if (selectedPowerUp === type) {
+            selectedPowerUp = null;
+        } else {
+            selectedPowerUp = type;
+        }
+        updatePowerUpsUI();
+    }
+
+    function updatePowerUpsUI() {
+        const p1Group = document.getElementById('p1-powerups');
+        const p2Group = document.getElementById('p2-powerups');
+
+        if (currentPlayer === 1) {
+            p1Group.classList.add('active-group');
+            p1Group.classList.remove('inactive-group');
+            p2Group.classList.remove('active-group');
+            p2Group.classList.add('inactive-group');
+        } else {
+            p1Group.classList.remove('active-group');
+            p1Group.classList.add('inactive-group');
+            p2Group.classList.add('active-group');
+            p2Group.classList.remove('inactive-group');
+        }
+
+        const types = ['bomb', 'double', 'swap'];
+        for (let p = 1; p <= 2; p++) {
+            types.forEach(t => {
+                const btn = document.getElementById(`p${p}-${t}`);
+                if (!btn) return;
+                
+                if (!powerupsState[p][t]) {
+                    btn.classList.add('used');
+                    btn.disabled = true;
+                    btn.classList.remove('selected');
+                } else {
+                    btn.classList.remove('used');
+                    btn.disabled = false;
+                    
+                    if (selectedPowerUp === t && currentPlayer === p) {
+                        btn.classList.add('selected');
+                    } else {
+                        btn.classList.remove('selected');
+                    }
+                }
+            });
+        }
+    }
+
+    // ─── COLUMN CLICKS & QUESTIONS GENERATION ─────────────────────────────────
+    function handleColumnClick(c) {
+        if (boardState[c].indexOf(null) === -1 && selectedPowerUp !== 'bomb' && selectedPowerUp !== 'swap') {
+            return; // Column full and not using swap/bomb
+        }
+
+        // Validate targets for powers
+        if (selectedPowerUp === 'bomb') {
+            const r = boardState[c].indexOf(null);
+            const targetRow = r === -1 ? ROWS - 1 : r - 1;
+            if (targetRow < 0) {
+                alert("This column is empty! Nothing to bomb.");
+                return;
+            }
+        } else if (selectedPowerUp === 'swap') {
+            const r = boardState[c].indexOf(null);
+            const targetRow = r === -1 ? ROWS - 1 : r - 1;
+            if (targetRow < 0) {
+                alert("This column is empty! Nothing to swap.");
+                return;
+            }
+            if (boardState[c][targetRow] === currentPlayer) {
+                alert("You already own the top piece! Choose a column with an opponent's piece.");
+                return;
+            }
+        }
+
+        activeCol = c;
+        lockSelection = false;
+
+        // Pick Target and Distractor Vocabs
+        const targetItem = validClothes[Math.floor(Math.random() * validClothes.length)];
+        let distractorItem;
+        do {
+            distractorItem = validClothes[Math.floor(Math.random() * validClothes.length)];
+        } while (distractorItem.w === targetItem.w);
+
+        // Update player badge
+        const badge = document.getElementById('player-badge');
+        let badgeText = currentPlayer === 1 ? "🔴 Red's Question" : "🟡 Yellow's Question";
+        if (selectedPowerUp) {
+            const powerName = selectedPowerUp === 'bomb' ? '💣 BOMB' : (selectedPowerUp === 'swap' ? '🎨 SWAP' : '⚡ DOUBLE');
+            badgeText = (currentPlayer === 1 ? '🔴 Red' : '🟡 Yellow') + ' - ' + powerName + ' TURN';
+        }
+        badge.innerText = badgeText;
+        badge.className = 'player-badge ' + (currentPlayer === 1 ? 'badge-red' : 'badge-yellow');
+
+        // Choose Question Type: 1 (Which one is X?) or 2 (What is this?)
+        const qType = Math.random() < 0.5 ? 1 : 2;
+        const contentArea = document.getElementById('q-content-area');
+        contentArea.innerHTML = '';
+
+        if (qType === 1) {
+            // Type 1: "Which one is a [shirt]?" -> choice of two images
+            document.getElementById('q-text').innerText = `Which one is a ${targetItem.w}?`;
+            document.getElementById('q-thai').innerText = `อันไหนคือ ${targetItem.th || ''}?`;
+
+            const choices = [targetItem, distractorItem].sort(() => Math.random() - 0.5);
+
+            const container = document.createElement('div');
+            container.className = 'choice-container';
+
+            choices.forEach((choice, idx) => {
+                const card = document.createElement('div');
+                card.className = 'choice-card';
+                card.onclick = () => submitAnswer(choice.w === targetItem.w, targetItem);
+
+                const numberBadge = `<div style="font-family:'Fredoka One', cursive; font-size:1.5rem; color:white; background:var(--board); border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; margin-top:10px; box-shadow: 0 3px 6px rgba(0,0,0,0.1);">${idx + 1}</div>`;
+
+                if (choice.file) {
+                    card.innerHTML = `<img class="choice-card-img" src="../clothes/${choice.file}" alt="${choice.w}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                      <div class="choice-card-emoji" style="display:none;">${choice.emoji}</div>
+                                      ${numberBadge}`;
+                } else {
+                    card.innerHTML = `<div class="choice-card-emoji">${choice.emoji}</div>
+                                      ${numberBadge}`;
+                }
+                container.appendChild(card);
+            });
+            contentArea.appendChild(container);
+        } else {
+            // Type 2: "What is this?" -> one image/emoji, choice of two words
+            document.getElementById('q-text').innerText = "What is this?";
+            document.getElementById('q-thai').innerText = "นี่คืออะไร?";
+
+            // Center image card
+            const centerCard = document.createElement('div');
+            centerCard.className = 'q-center-card';
+            if (targetItem.file) {
+                centerCard.innerHTML = `<img class="q-center-img" src="../clothes/${targetItem.file}" alt="${targetItem.w}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                        <div class="q-center-emoji" style="display:none;">${targetItem.emoji}</div>`;
+            } else {
+                centerCard.innerHTML = `<div class="q-center-emoji">${targetItem.emoji}</div>`;
+            }
+            contentArea.appendChild(centerCard);
+
+            // Shuffled choices
+            const choices = [targetItem, distractorItem].sort(() => Math.random() - 0.5);
+
+            const btnContainer = document.createElement('div');
+            btnContainer.className = 'choice-btn-container';
+
+            choices.forEach(choice => {
+                const btn = document.createElement('button');
+                btn.className = 'choice-text-btn';
+                btn.innerText = choice.w;
+                btn.onclick = () => submitAnswer(choice.w === targetItem.w, targetItem);
+                btnContainer.appendChild(btn);
+            });
+            contentArea.appendChild(btnContainer);
+        }
+
+        document.getElementById('overlay').style.display = 'flex';
+    }
+
+    // ─── ANSWER SUBMISSION & RESOLUTION ───────────────────────────────────────
+    function submitAnswer(isCorrect, targetItem) {
+        if (lockSelection) return;
+        lockSelection = true;
+
+        const contentArea = document.getElementById('q-content-area');
+        contentArea.innerHTML = '';
+
+        if (isCorrect) {
+            playSound('correct');
+            contentArea.innerHTML = `
+                <div class="feedback-anim">🎉</div>
+                <div class="feedback-title feedback-correct">CORRECT!</div>
+                <div class="feedback-text">Excellent job! That is a <strong>${targetItem.w}</strong> (${targetItem.th || ''}).</div>
+            `;
+            setTimeout(() => {
+                resolveTurn(true);
+            }, 1500);
+        } else {
+            playSound('wrong');
+            contentArea.innerHTML = `
+                <div class="feedback-anim">❌</div>
+                <div class="feedback-title feedback-incorrect">INCORRECT!</div>
+                <div class="feedback-text">Oops! The correct answer was <strong>${targetItem.w}</strong> (${targetItem.th || ''}). <br>You forfeit your turn!</div>
+            `;
+            setTimeout(() => {
+                resolveTurn(false);
+            }, 1800);
+        }
+    }
+
+    function resolveTurn(isCorrect) {
+        document.getElementById('overlay').style.display = 'none';
+
+        if (!isCorrect) {
+            // Forfeit go - turn switches immediately without actions
+            selectedPowerUp = null;
+            updatePowerUpsUI();
+            
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            updateStatus();
+            return;
+        }
+
+        // Drop piece or execute power-ups
+        const powerActive = selectedPowerUp;
+
+        if (powerActive === 'bomb') {
+            const r = boardState[activeCol].indexOf(null);
+            const targetRow = r === -1 ? ROWS - 1 : r - 1;
+            boardState[activeCol][targetRow] = null;
+            
+            const slot = document.getElementById(`slot-${activeCol}-${targetRow}`);
+            slot.className = 'slot';
+
+            powerupsState[currentPlayer]['bomb'] = false;
+            selectedPowerUp = null;
+            updatePowerUpsUI();
+            updateColumnNumbers();
+
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            updateStatus();
+
+        } else if (powerActive === 'swap') {
+            const r = boardState[activeCol].indexOf(null);
+            const targetRow = r === -1 ? ROWS - 1 : r - 1;
+            boardState[activeCol][targetRow] = currentPlayer;
+
+            const slot = document.getElementById(`slot-${activeCol}-${targetRow}`);
+            slot.className = `slot ${currentPlayer === 1 ? 'red' : 'yellow'}`;
+
+            powerupsState[currentPlayer]['swap'] = false;
+            selectedPowerUp = null;
+            updatePowerUpsUI();
+            updateColumnNumbers();
+
+            if (checkWin(activeCol, targetRow)) {
+                setTimeout(() => showWin(currentPlayer), 300);
+                return;
+            }
+
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            updateStatus();
+
+        } else {
+            // Normal drop or Double Shot
+            const r = boardState[activeCol].indexOf(null);
+            boardState[activeCol][r] = currentPlayer;
+            const slot = document.getElementById(`slot-${activeCol}-${r}`);
+            const slotH = 74;
+            const dropRows = ROWS - r;
+            slot.style.setProperty('--drop-y', `-${dropRows * slotH}px`);
+            slot.className = `slot ${currentPlayer === 1 ? 'red' : 'yellow'} dropping`;
+            slot.addEventListener('animationend', () => slot.classList.remove('dropping'), { once: true });
+            
+            updateColumnNumbers();
+
+            if (checkWin(activeCol, r)) {
+                setTimeout(() => showWin(currentPlayer), 300);
+                return;
+            }
+
+            if (powerActive === 'double') {
+                powerupsState[currentPlayer]['double'] = false;
+                selectedPowerUp = null;
+                doubleShotActive = true;
+            }
+
+            selectedPowerUp = null;
+            updatePowerUpsUI();
+
+            if (doubleShotActive) {
+                doubleShotActive = false;
+                const s = document.getElementById('status');
+                s.innerText = (currentPlayer === 1 ? '🔴 Red' : '🟡 Yellow') + " - EXTRA TURN!";
+            } else {
+                currentPlayer = currentPlayer === 1 ? 2 : 1;
+                updateStatus();
+            }
+        }
+    }
+
+    function updateStatus() {
+        const s = document.getElementById('status');
+        s.innerText = currentPlayer === 1 ? "🔴 Red Player's Turn" : "🟡 Yellow Player's Turn";
+        s.className = `status-bar ${currentPlayer === 1 ? 'p1-turn' : 'p2-turn'}`;
+        updatePowerUpsUI();
+    }
+
+    function showWin(player) {
+        const title = document.getElementById('win-title');
+        title.innerText = player === 1 ? '🎉 Red Wins!' : '🎉 Yellow Wins!';
+        title.style.color = player === 1 ? '#ff4757' : '#ffa502';
+        document.getElementById('win-overlay').style.display = 'flex';
+    }
+
+    function checkWin(c, r) {
+        const p = boardState[c][r];
+        const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+        for (let [dc, dr] of dirs) {
+            let count = 1;
+            for (let i = 1; i < 4; i++) { if (boardState[c+dc*i]?.[r+dr*i] === p) count++; else break; }
+            for (let i = 1; i < 4; i++) { if (boardState[c-dc*i]?.[r-dr*i] === p) count++; else break; }
+            if (count >= 4) return true;
+        }
+        return false;
+    }
+
+    function restartGame() {
+        document.getElementById('win-overlay').style.display = 'none';
+        currentPlayer = 1;
+        powerupsState = {
+            1: { bomb: true, double: true, swap: true },
+            2: { bomb: true, double: true, swap: true }
+        };
+        init();
+    }
+
+    // Initialize Game
+    init();
+</script>
+</body>
+</html>

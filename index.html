@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher Lewis' ESL Game Zone 🎮</title>
+  <meta name="description" content="Play fun, interactive ESL Connect Four and Memory games designed for English learners. Improve speaking, grammar, and vocabulary in real-time.">
+  
+  <!-- Premium Typography and Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Outfit:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      /* Curated Theme Palettes */
+      --bg-gradient: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
+      --primary: #4a69bd;
+      --primary-hover: #3c54b4;
+      --secondary: #6c5ce7;
+      --secondary-hover: #5849d4;
+      --bg-card: rgba(255, 255, 255, 0.9);
+      --bg-glass: rgba(255, 255, 255, 0.25);
+      --border-glass: rgba(255, 255, 255, 0.4);
+      --text-dark: #2c3e50;
+      --text-muted: #5a738e;
+      --shadow-sm: 0 4px 6px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 10px 20px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 15px 35px rgba(0, 0, 0, 0.15);
+      --radius-sm: 12px;
+      --radius-md: 20px;
+      --radius-lg: 28px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: var(--bg-gradient);
+      font-family: 'Outfit', 'Nunito', sans-serif;
+      color: var(--text-dark);
+      min-height: 100vh;
+      padding: 40px 20px;
+      line-height: 1.5;
+    }
+
+    /* Outer Container */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+
+    /* Header Styling */
+    header {
+      background: var(--bg-glass);
+      border: 1px solid var(--border-glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      padding: 30px 40px;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-md);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -20%;
+      width: 50%;
+      height: 200%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transform: rotate(30deg);
+      pointer-events: none;
+      animation: shine 6s infinite ease-in-out;
+    }
+
+    @keyframes shine {
+      0% { left: -60%; }
+      50%, 100% { left: 140%; }
+    }
+
+    .brand-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .main-title {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(28px, 4vw, 42px);
+      color: #fff;
+      text-shadow: 3px 3px 0px var(--primary);
+      letter-spacing: 1px;
+    }
+
+    .subtitle {
+      font-size: clamp(14px, 1.8vw, 18px);
+      color: #fff;
+      font-weight: 500;
+      opacity: 0.95;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    }
+
+    /* QR Code Widget */
+    .qr-widget {
+      background: white;
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      box-shadow: var(--shadow-sm);
+      border: 2px solid var(--primary);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .qr-widget:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: var(--shadow-md);
+    }
+
+    .qr-code-img {
+      width: 70px;
+      height: 70px;
+      border-radius: 6px;
+      background: #f1f2f6;
+    }
+
+    .qr-text-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .qr-label {
+      font-family: 'Fredoka One', cursive;
+      font-size: 14px;
+      color: var(--primary);
+    }
+
+    .qr-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    /* Search and Filter Controls */
+    .controls-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      padding: 20px 25px;
+      box-shadow: var(--shadow-md);
+    }
+
+    @media (min-width: 768px) {
+      .controls-bar {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+      }
+    }
+
+    .search-wrapper {
+      position: relative;
+      flex: 1;
+      max-width: 450px;
+      width: 100%;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 14px 20px 14px 45px;
+      border-radius: 50px;
+      border: 2px solid #e2e8f0;
+      font-family: 'Outfit', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-dark);
+      outline: none;
+      transition: all 0.3s;
+    }
+
+    .search-input:focus {
+      border-color: var(--secondary);
+      box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.15);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 18px;
+      pointer-events: none;
+      color: #94a3b8;
+    }
+
+    .categories-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .category-btn {
+      font-family: 'Fredoka One', cursive;
+      font-size: 14px;
+      padding: 8px 18px;
+      border-radius: 50px;
+      border: 2px solid transparent;
+      background: #f1f5f9;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.25s;
+    }
+
+    .category-btn:hover {
+      background: #e2e8f0;
+      color: var(--text-dark);
+    }
+
+    .category-btn.active {
+      background: var(--secondary);
+      color: white;
+      box-shadow: 0 4px 10px rgba(108, 92, 231, 0.3);
+    }
+
+    /* Games Cards Grid */
+    .game-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 25px;
+    }
+
+    .game-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+      transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .game-card:hover {
+      transform: translateY(-8px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .card-top {
+      height: 140px;
+      background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .card-emoji {
+      font-size: 64px;
+      filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.15));
+      transition: transform 0.3s;
+    }
+
+    .game-card:hover .card-emoji {
+      transform: scale(1.15) rotate(5deg);
+    }
+
+    .card-body {
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .badge-category {
+      align-self: flex-start;
+      font-family: 'Fredoka One', cursive;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 50px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-connect4 {
+      background: #e3f2fd;
+      color: #1e88e5;
+    }
+
+    .badge-memory {
+      background: #f3e5f5;
+      color: #8e24aa;
+    }
+
+    .card-title {
+      font-family: 'Fredoka One', cursive;
+      font-size: 20px;
+      color: var(--text-dark);
+      line-height: 1.2;
+    }
+
+    .card-desc {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      font-weight: 500;
+      flex: 1;
+    }
+
+    .btn-launch {
+      display: inline-block;
+      text-align: center;
+      text-decoration: none;
+      font-family: 'Fredoka One', cursive;
+      font-size: 14px;
+      color: white;
+      background: var(--primary);
+      padding: 10px 20px;
+      border-radius: 50px;
+      box-shadow: 0 4px 10px rgba(74, 105, 189, 0.25);
+      transition: all 0.2s;
+      margin-top: 10px;
+    }
+
+    .btn-launch:hover {
+      background: var(--primary-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(74, 105, 189, 0.35);
+    }
+
+    .no-results {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 50px;
+      font-family: 'Fredoka One', cursive;
+      font-size: 20px;
+      color: var(--text-muted);
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      display: none;
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px 0;
+      color: #636e72;
+      font-size: 14px;
+      font-weight: 600;
+      border-top: 1px solid rgba(255,255,255,0.25);
+      margin-top: 20px;
+    }
+
+    /* Modal Styling */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(44, 62, 80, 0.6);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s;
+      z-index: 999;
+      padding: 20px;
+    }
+
+    .modal.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 35px 25px;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      position: relative;
+      transform: scale(0.9);
+      transition: transform 0.3s;
+    }
+
+    .modal.active .modal-content {
+      transform: scale(1);
+    }
+
+    .btn-close-modal {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: #f1f2f6;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-size: 18px;
+      font-weight: bold;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .btn-close-modal:hover {
+      background: #dfe4ea;
+      color: var(--text-dark);
+    }
+
+    .modal-title {
+      font-family: 'Fredoka One', cursive;
+      font-size: 24px;
+      color: var(--primary);
+    }
+
+    .modal-qr-img {
+      width: 200px;
+      height: 200px;
+      border: 4px solid var(--primary);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      background: white;
+    }
+
+    .modal-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <header>
+    <div class="brand-group">
+      <h1 class="main-title" id="portal-title">Teacher Lewis' Game Zone 🎮</h1>
+      <p class="subtitle">Fun Connect Four and Memory Games for ESL Practice</p>
+    </div>
+    
+    <!-- QR Display Widget -->
+    <div class="qr-widget" id="qr-display-widget" onclick="openQrModal()">
+      <img id="header-qr" class="qr-code-img" src="" alt="QR Code">
+      <div class="qr-text-group">
+        <span class="qr-label">Student Access 📱</span>
+        <span class="qr-desc">Click to scan and play!</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Controls Bar -->
+  <div class="controls-bar">
+    <div class="search-wrapper">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="game-search-input" class="search-input" placeholder="Search for a game or topic..." oninput="handleSearch(this.value)">
+    </div>
+    
+    <div class="categories-group">
+      <button class="category-btn active" id="btn-cat-all" data-cat="all" onclick="filterCategory('all')">All Games</button>
+      <button class="category-btn" id="btn-cat-connect4" data-cat="connect4" onclick="filterCategory('connect4')">Connect Four</button>
+      <button class="category-btn" id="btn-cat-memory" data-cat="memory" onclick="filterCategory('memory')">Memory Games</button>
+    </div>
+  </div>
+
+  <!-- Game Cards Grid -->
+  <main class="game-grid" id="game-cards-grid">
+
+    <!-- Connect 4 Online -->
+    <div class="game-card" data-category="connect4" data-tags="online multiplayer interactive real-time peer-to-peer drop connect 4 connectfour">
+      <div class="card-top" style="background: linear-gradient(135deg, #4a69bd 0%, #6c5ce7 100%);">
+        <span class="card-emoji">🌐</span>
+      </div>
+      <div class="card-body">
+        <span class="badge-category badge-connect4">Connect Four</span>
+        <h2 class="card-title">Connect 4 Online (Real-time)</h2>
+        <p class="card-desc">Play online against students in real-time with automatic turn-syncing, drops, and peer connection.</p>
+        <a href="connectfour-online.html" id="link-c4-online" class="btn-launch">Play Game 🚀</a>
+      </div>
+    </div>
+
+    <!-- Connect 4 - Animals -->
+    <div class="game-card" data-category="connect4" data-tags="animals lion bear bird tiger turtle easy hard connect 4 connectfour vocabulary spelling">
+      <div class="card-top" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+        <span class="card-emoji">🦁</span>
+      </div>
+      <div class="card-body">
+        <span class="badge-category badge-connect4">Connect Four</span>
+        <h2 class="card-title">Connect 4 - Animals</h2>
+        <p class="card-desc">Identify animals in Easy mode or answer challenging animal trivia in Hard mode to claim a slot!</p>
+        <a href="connectfour.html/animals.html" id="link-c4-animals" class="btn-launch">Play Game 🚀</a>
+      </div>
+    </div>
+
+    <!-- Connect 4 - Jobs -->
+    <div class="game-card" data-category="connect4" data-tags="jobs dentist nurse teacher police engineer occupation career easy hard connect 4 connectfour vocabulary speaking">
+      <div class="card-top" style="background: linear-gradient(135deg, #fc5c9c 0%, #fec951 100%);">
+        <span class="card-emoji">🧑‍⚕️</span>
+      </div>
+      <div class="card-body">
+        <span class="badge-category badge-connect4">Connect Four</span>
+        <h2 class="card-title">Connect 4 - Jobs & Careers</h2>
+        <p class="card-desc">Review career names, roles, and occupations as you try to get four tokens in a row.</p>
+        <a href="connectfour.html/jobs.html" id="link-c4-jobs" class="btn-launch">Play Game 🚀</a>
+      </div>
+    </div>
+
+    <!-- Connect 4 - Conversation -->
+    <div class="game-card" data-category="connect4" data-tags="conversation speaking ask question chat debate icebreaker speaking practice connect 4 connectfour">
+      <div class="card-top" style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);">
+        <span class="card-emoji">💬</span>
+      </div>
+      <div class="card-body">
+        <span class="badge-category badge-connect4">Connect Four</span>
+        <h2 class="card-title">Connect 4 - Let's Chat!</h2>
+        <p class="card-desc">Answer icebreaker and conversation questions to claim positions on the board.</p>
+        <a href="connectfour.html/conversation.html" id="link-c4-conversation" class="btn-launch">Play Game 🚀</a>
+      </div>
+    </div>
+
+    <!-- Connect 4 - Habits -->
+    <div class="game-card" data-category="connect4" data-tags="habits daily routine brushing teeth shower morning routines connect 4 connectfour">
+      <div class="card-top" style="background: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%);">
+        <span class="card-emoji">🪥</span>
+      </div>
+      <div class="card-body">
+        <span class="badge-category badge-connect4">Connect Four</span>
+        <h2 class="card-title">Connect 4 - Daily Habits</h2>
+        <p class="card-desc">Learn and practice vocabulary relating to daily routines and healthy habits.</p>
+        <a href="connectfour.html/habits.html" id="link-c4-habits" class="btn-launch">Play Game 🚀</a>
+      </div>
+    </div>
+
+    <!-- Connect 4 - Frequencies -->
+    <div class="game-card" data-category="connect4" data-tags="frequencies adverbs time how often simple present routines grammar connect 4 connectfour">
+      <div class="card-top" style="background: linear-gradient(135deg, #00cec9 0%, #81ecec 100%);">
+        <span class="card-emoji">⏰</span>
+      </div>
+      <div class="card-body">
+        <span class="badge-category">Connect Four</span>
+        <h2 class="card-title">Connect 4 - Frequencies</h2>
+        <p class="card-desc">Master frequency adverbs: always, usually, often, sometimes, rarely, and never.</p>
+        <a href="connectfour.html/frequencies.html" id="link-c4-frequencies" class="btn-launch">Play Game 🚀</a>
+      </div>
+    </div>
+
+    <!-- Connect 4 - Simple Questions -->
+    <div class="game-card" data-category="connect4" data-tags="simple questions grammar sentence structure ask question questions connect 4 connectfour">
+      <div class="card-top" style="background: linear-gradient(135deg, #9b59b6 0%, #e0c3fc 100%);">
+        <span class="card-emoji">❓</span>
+      </div>
+      <div class="card-body">
+        <span class="badge-category badge-connect4">Connect Four</span>
+        <h2 class="card-title">Connect 4 - Simple Questions</h2>
+        <p class="card-desc">Practice asking and answering elementary questions to build correct grammar habits.</p>
+        <a href="connectfour.html/simple-questions.html" id="link-c4-simpleq" class="btn-launch">Play Game 🚀</a>
+      </div>
+    </div>
+
+    <!-- Connect 4 - Sonic -->
+    <div class="game-card" data-category="connect4" data-tags="sonic hedgehog game fun child boy arcade kids connect 4 connectfour">
+      <div class="card-top" style="background: linear-gradient(135deg, #1e90ff 0%, #82b1ff 100%);">
+        <span class="card-emoji">🦔</span>
+      </div>
+      <div class="card-body">
+        <span class="badge-category badge-connect4">Connect Four</span>
+        <h2 class="card-title">Connect 4 - Sonic Edition</h2>
+        <p class="card-desc">A fast-paced, Sonic-themed layout perfect for engaging younger English learners.</p>
+        <a href="connectfour.html/sonic.html" id="link-c4-sonic" class="btn-launch">Play Game 🚀</a>
+      </div>
+    </div>
+
+    <!-- Connect 4 - All Topics -->
+    <div class="game-card" data-category="connect4" data-tags="all topics categories jobs animals places food transport sports fruits weather choose list connect 4 connectfour">
+      <div class="card-top" style="background: linear-gradient(135deg, #10ac84 0%, #1dd1a1 100%);">
+        <span class="card-emoji">📂</span>
+      </div>
+      <div class="card-body">
+        <span class="badge-category badge-connect4">Connect Four</span>
+        <h2 class="card-title">Connect 4 - All Topics</h2>
+        <p class="card-desc">A mega version containing all categories: Jobs, Animals, Food, Transport, Sports, and Fruits.</p>
+        <a href="connectfour.html/all-topics.html" id="link-c4-alltopics" class="btn-launch">Play Game 🚀</a>
+      </div>
+    </div>
+
+    <!-- Connect 4 - Vietnamese Translation -->
+    <div class="game-card" data-category="connect4" data-tags="vietnamese bilingual translation esl english-vietnamese connect 4 connectfour">
+      <div class="card-top" style="background: linear-gradient(135deg, #ee5253 0%, #ff6b6b 100%);">
+        <span class="card-emoji">🇻🇳</span>
+      </div>
+      <div class="card-body">
+        <span class="badge-category badge-connect4">Connect Four</span>
+        <h2 class="card-title">Connect 4 - Vietnamese Translation</h2>
+        <p class="card-desc">Includes questions with bilingual English-Vietnamese hints, perfect for local students.</p>
+        <a href="connectfour.html/vietnamese-esl.html" id="link-c4-vi" class="btn-launch">Play Game 🚀</a>
+      </div>
+    </div>
+
+    <!-- Connect 4 - Past Continuous -->
+    <div class="game-card" data-category="connect4" data-tags="past continuous grammar tenses verb simple past structures connect 4 connectfour">
+      <div class="card-top" style="background: linear-gradient(135deg, #ff9f43 0%, #feca57 100%);">
+        <span class="card-emoji">⏳</span>
+      </div>
+      <div class="card-body">
+        <span class="badge-category badge-connect4">Connect Four</span>
+        <h2 class="card-title">Connect 4 - Past Continuous</h2>
+        <p class="card-desc">Improve your past continuous speaking flow. Formulate actions with "was/were + verb-ing".</p>
+        <a href="connectfour.html/past-continuous.html" id="link-c4-pastcont" class="btn-launch">Play Game 🚀</a>
+      </div>
+    </div>
+
+    <!-- Connect 4 - How Often -->
+    <div class="game-card" data-category="connect4" data-tags="how often frequencies time routine simple present connect 4 connectfour">
+      <div class="card-top" style="background: linear-gradient(135deg, #5f27cd 0%, #341f97 100%);">
+        <span class="card-emoji">📅</span>
+      </div>
+      <div class="card-body">
+        <span class="badge-category badge-connect4">Connect Four</span>
+        <h2 class="card-title">Connect 4 - How Often?</h2>
+        <p class="card-desc">Answer "How often..." prompts to master present frequency questions in English.</p>
+        <a href="connectfour.html/how-often.html" id="link-c4-howoften" class="btn-launch">Play Game 🚀</a>
+      </div>
+    </div>
+
+    <!-- Brain Match! Memory Game -->
+    <div class="game-card" data-category="memory" data-tags="memory brain match multiplayer pairs cards scoreboard matches play solo pairs count">
+      <div class="card-top" style="background: linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%);">
+        <span class="card-emoji">🧠</span>
+      </div>
+      <div class="card-body">
+        <span class="badge-category badge-memory">Memory Game</span>
+        <h2 class="card-title">Brain Match! Memory Game</h2>
+        <p class="card-desc">Multiplayer matching memory game featuring custom grid configs, point trackers, and smooth card flips.</p>
+        <a href="memory.html" id="link-mem-brain" class="btn-launch">Play Game 🚀</a>
+      </div>
+    </div>
+
+    <!-- Clothes Memory Match -->
+    <div class="game-card" data-category="memory" data-tags="clothes memory match t-shirt pants dress skirt shoes socks thai translation pairs">
+      <div class="card-top" style="background: linear-gradient(135deg, #ff7675 0%, #ff6b9d 100%);">
+        <span class="card-emoji">👚</span>
+      </div>
+      <div class="card-body">
+        <span class="badge-category badge-memory">Memory Game</span>
+        <h2 class="card-title">Clothes Memory Match</h2>
+        <p class="card-desc">Match essential clothing items. Features vocabulary cards, illustration mode, and Thai translations.</p>
+        <a href="memory-clothes.html" id="link-mem-clothes" class="btn-launch">Play Game 🚀</a>
+      </div>
+    </div>
+
+    <!-- Places Memory Match -->
+    <div class="game-card" data-category="memory" data-tags="places memory match town library museum bank beach school zoom hospital pairs">
+      <div class="card-top" style="background: linear-gradient(135deg, #54a0ff 0%, #00d2d3 100%);">
+        <span class="card-emoji">🗺️</span>
+      </div>
+      <div class="card-body">
+        <span class="badge-category badge-memory">Memory Game</span>
+        <h2 class="card-title">Places Memory Match</h2>
+        <p class="card-desc">Practice community locations and places. Features high-quality PNG illustrations for all places.</p>
+        <a href="memory-places.html" id="link-mem-places" class="btn-launch">Play Game 🚀</a>
+      </div>
+    </div>
+
+    <!-- Weather Memory Match -->
+    <div class="game-card" data-category="memory" data-tags="weather memory match sunny rainy snowy stormy windy climate temperature pairs">
+      <div class="card-top" style="background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);">
+        <span class="card-emoji">🌦️</span>
+      </div>
+      <div class="card-body">
+        <span class="badge-category badge-memory">Memory Game</span>
+        <h2 class="card-title">Weather Memory Match</h2>
+        <p class="card-desc">Match climatic conditions. Features fun, animated weather GIFs and pronunciation tools.</p>
+        <a href="memory-weather.html" id="link-mem-weather" class="btn-launch">Play Game 🚀</a>
+      </div>
+    </div>
+
+    <!-- Memory Tray Online -->
+    <div class="game-card" data-category="memory" data-tags="memory tray online real-time multiplayer hub sync preply teacher guesses checklist items">
+      <div class="card-top" style="background: linear-gradient(135deg, #2ecc71 0%, #1abc9c 100%);">
+        <span class="card-emoji">🔮</span>
+      </div>
+      <div class="card-body">
+        <span class="badge-category badge-memory">Memory Game</span>
+        <h2 class="card-title">Memory Tray Online</h2>
+        <p class="card-desc">Host interactive, synchronized Memory Tray rounds. Teachers display the tray, hide items, and track live guesses.</p>
+        <a href="memory-tray-online.html" id="link-mem-tray" class="btn-launch">Play Game 🚀</a>
+      </div>
+    </div>
+
+    <!-- Jobs Memory Game -->
+    <div class="game-card" data-category="memory" data-tags="jobs memory match occupation careers roles nurse teacher chef police pairs">
+      <div class="card-top" style="background: linear-gradient(135deg, #1dd1a1 0%, #10ac84 100%);">
+        <span class="card-emoji">👔</span>
+      </div>
+      <div class="card-body">
+        <span class="badge-category badge-memory">Memory Game</span>
+        <h2 class="card-title">Jobs Memory Match</h2>
+        <p class="card-desc">A specialized matching game focusing on professional professions, careers, and community helper roles.</p>
+        <a href="connectfour.html/jobs-memory.html" id="link-mem-jobs" class="btn-launch">Play Game 🚀</a>
+      </div>
+    </div>
+
+    <!-- Fallback Card for search -->
+    <div class="no-results" id="no-game-results">
+      No games match your search. Try adjusting your query! 🔍
+    </div>
+
+  </main>
+
+  <footer>
+    <p>Teacher Lewis' ESL Game Portal &copy; 2026. Made with Google DeepMind Advanced Agentic Coding.</p>
+  </footer>
+</div>
+
+<!-- Modal Dialog for QR Code display -->
+<div class="modal" id="qr-code-modal" onclick="closeQrModal()">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <button class="btn-close-modal" id="btn-close-qr-modal" onclick="closeQrModal()">&times;</button>
+    <h3 class="modal-title">Student QR Code 📱</h3>
+    <img id="modal-qr" class="modal-qr-img" src="" alt="QR Code">
+    <p class="modal-desc">Scan this QR code with a phone or tablet to open the Game Portal directly on student devices!</p>
+    <div style="font-size: 13px; font-weight: bold; background: #eef2f7; padding: 10px; border-radius: 10px; word-break: break-all;" id="current-portal-url"></div>
+  </div>
+</div>
+
+<script>
+  // Dynamic QR code generation based on current window location
+  function generateQRCodes() {
+    let currentUrl = window.location.href;
+    const isLocal = (window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    if (isLocal) {
+      currentUrl = 'https://log210788.github.io/games/';
+    }
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(currentUrl)}`;
+    
+    document.getElementById('header-qr').src = qrUrl;
+    document.getElementById('modal-qr').src = qrUrl;
+    document.getElementById('current-portal-url').textContent = currentUrl;
+  }
+
+  // Run on page load
+  window.onload = generateQRCodes;
+
+  // Category Filtering logic
+  function filterCategory(category) {
+    const buttons = document.querySelectorAll('.category-btn');
+    buttons.forEach(btn => {
+      if (btn.dataset.cat === category) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    const cards = document.querySelectorAll('.game-card');
+    let visibleCount = 0;
+    
+    cards.forEach(card => {
+      const isMatch = (category === 'all' || card.dataset.category === category);
+      if (isMatch) {
+        card.style.display = 'flex';
+        visibleCount++;
+      } else {
+        card.style.display = 'none';
+      }
+    });
+
+    document.getElementById('no-game-results').style.display = visibleCount === 0 ? 'block' : 'none';
+  }
+
+  // Search filter logic
+  function handleSearch(query) {
+    const activeCategoryBtn = document.querySelector('.category-btn.active');
+    const currentCategory = activeCategoryBtn ? activeCategoryBtn.dataset.cat : 'all';
+    
+    const searchTerms = query.toLowerCase().trim().split(/\s+/);
+    const cards = document.querySelectorAll('.game-card');
+    let visibleCount = 0;
+
+    cards.forEach(card => {
+      const matchCategory = (currentCategory === 'all' || card.dataset.category === currentCategory);
+      
+      let matchSearch = true;
+      if (query.trim() !== '') {
+        const title = card.querySelector('.card-title').textContent.toLowerCase();
+        const desc = card.querySelector('.card-desc').textContent.toLowerCase();
+        const tags = card.dataset.tags ? card.dataset.tags.toLowerCase() : '';
+        const combinedText = `${title} ${desc} ${tags}`;
+        
+        matchSearch = searchTerms.every(term => combinedText.includes(term));
+      }
+
+      if (matchCategory && matchSearch) {
+        card.style.display = 'flex';
+        visibleCount++;
+      } else {
+        card.style.display = 'none';
+      }
+    });
+
+    document.getElementById('no-game-results').style.display = visibleCount === 0 ? 'block' : 'none';
+  }
+
+  // Modal handlers
+  function openQrModal() {
+    document.getElementById('qr-code-modal').classList.add('active');
+  }
+
+  function closeQrModal() {
+    document.getElementById('qr-code-modal').classList.remove('active');
+  }
+</script>
+</body>
+</html>

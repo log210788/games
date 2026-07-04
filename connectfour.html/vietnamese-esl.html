@@ -1,0 +1,1683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💬 Connect 4 – Vietnamese ESL Arena</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --p1: #ff4757; /* Team Red */
+            --p2: #2e86de; /* Team Blue */
+            --p3: #2ed573; /* Team Green */
+            --p4: #ffa502; /* Team Yellow */
+            --p5: #ff9f43; /* Team Orange */
+            --p6: #a55eed; /* Team Purple */
+            --board: #1e293b;
+            --bg: #0f172a;
+            --slot-empty: #334155;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #f8fafc;
+            margin: 0;
+            padding: 20px 10px 40px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            font-family: 'Fredoka One', cursive;
+            font-size: 2.2rem;
+            color: #f8fafc;
+            margin: 0 0 4px;
+            letter-spacing: 1px;
+            text-align: center;
+            text-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: #94a3b8;
+            font-weight: 700;
+            margin-bottom: 20px;
+            letter-spacing: 0.5px;
+            text-align: center;
+        }
+
+        .status-bar {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.5rem;
+            padding: 12px 36px;
+            border-radius: 50px;
+            margin-bottom: 20px;
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 3px solid #475569;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+            transition: all 0.3s;
+            text-align: center;
+        }
+        .p1-turn { color: var(--p1); border-color: var(--p1); box-shadow: 0 0 15px rgba(255,71,87,0.3); }
+        .p2-turn { color: var(--p2); border-color: var(--p2); box-shadow: 0 0 15px rgba(46,134,222,0.3); }
+        .p3-turn { color: var(--p3); border-color: var(--p3); box-shadow: 0 0 15px rgba(46,213,115,0.3); }
+        .p4-turn { color: var(--p4); border-color: var(--p4); box-shadow: 0 0 15px rgba(255,165,2,0.3); }
+        .p5-turn { color: var(--p5); border-color: var(--p5); box-shadow: 0 0 15px rgba(255,159,67,0.3); }
+        .p6-turn { color: var(--p6); border-color: var(--p6); box-shadow: 0 0 15px rgba(165,94,237,0.3); }
+
+        .board-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 720px;
+        }
+
+        .column-numbers {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 8px;
+            padding: 0 12px;
+            margin-bottom: 8px;
+            width: 100%;
+        }
+
+        .col-num {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.4rem;
+            color: #f8fafc;
+            text-align: center;
+            background: #334155;
+            border-radius: 12px;
+            padding: 6px 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            line-height: 1.2;
+            transition: transform 0.15s, background 0.15s, box-shadow 0.15s;
+            cursor: pointer;
+            user-select: none;
+            border: 2px solid #475569;
+        }
+        .col-num:hover {
+            background: #475569;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        }
+        .col-num.full {
+            color: #64748b;
+            background: #1e293b;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            border-color: #334155;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            background: var(--board);
+            padding: 12px;
+            border-radius: 24px;
+            gap: 8px;
+            box-shadow: 0 12px 0 #0f172a, 0 16px 35px rgba(0,0,0,0.5);
+            width: 100%;
+            overflow: hidden;
+            border: 4px solid #334155;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 8px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 12px;
+            transition: background 0.2s;
+        }
+        .column:hover { background: rgba(255,255,255,0.06); }
+
+        .slot {
+            aspect-ratio: 1;
+            width: 100%;
+            border-radius: 50%;
+            background: var(--slot-empty);
+            border: 3px solid rgba(0,0,0,0.2);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: inset 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .slot.p1 { background: var(--p1) !important; box-shadow: 0 0 16px rgba(255,71,87,0.7), inset 0 -4px 6px rgba(0,0,0,0.3); }
+        .slot.p2 { background: var(--p2) !important; box-shadow: 0 0 16px rgba(46,134,222,0.7), inset 0 -4px 6px rgba(0,0,0,0.3); }
+        .slot.p3 { background: var(--p3) !important; box-shadow: 0 0 16px rgba(46,213,115,0.7), inset 0 -4px 6px rgba(0,0,0,0.3); }
+        .slot.p4 { background: var(--p4) !important; box-shadow: 0 0 16px rgba(255,165,2,0.7), inset 0 -4px 6px rgba(0,0,0,0.3); }
+        .slot.p5 { background: var(--p5) !important; box-shadow: 0 0 16px rgba(255,159,67,0.7), inset 0 -4px 6px rgba(0,0,0,0.3); }
+        .slot.p6 { background: var(--p6) !important; box-shadow: 0 0 16px rgba(165,94,237,0.7), inset 0 -4px 6px rgba(0,0,0,0.3); }
+
+        /* Question Overlay */
+        #overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        #q-card {
+            background: #1e293b;
+            padding: 32px 40px;
+            border-radius: 28px;
+            max-width: 580px;
+            width: 100%;
+            text-align: center;
+            border: 6px solid #475569;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            color: #f8fafc;
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.7); opacity: 0; }
+            to   { transform: scale(1);   opacity: 1; }
+        }
+
+        .player-badge {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.1rem;
+            padding: 6px 20px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 16px;
+            color: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .badge-p1 { background: var(--p1); }
+        .badge-p2 { background: var(--p2); }
+        .badge-p3 { background: var(--p3); }
+        .badge-p4 { background: var(--p4); }
+        .badge-p5 { background: var(--p5); }
+        .badge-p6 { background: var(--p6); }
+
+        .category-badge {
+            font-size: 0.85rem;
+            font-weight: 800;
+            padding: 4px 16px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 16px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .cat-pronunciation { background: #fce7f3; color: #db2777; }
+        .cat-grammar       { background: #e0f2fe; color: #0369a1; }
+        .cat-vocabulary    { background: #fef3c7; color: #b45309; }
+        .cat-speech        { background: #dcfce7; color: #15803d; }
+
+        .emoji-display {
+            font-size: 72px;
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            background: #334155;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            border: 4px solid #475569;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        #q-text {
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #f8fafc;
+            margin-bottom: 14px;
+            line-height: 1.4;
+        }
+
+        #q-translation {
+            font-size: 1.25rem;
+            color: #94a3b8;
+            margin-bottom: 22px;
+            min-height: 28px;
+            font-style: italic;
+            display: none;
+            background: #0f172a;
+            padding: 12px;
+            border-radius: 14px;
+            border: 1px dashed #334155;
+        }
+
+        .translate-btn {
+            background: none;
+            border: 2px solid #475569;
+            color: #94a3b8;
+            padding: 8px 24px;
+            border-radius: 20px;
+            font-size: 1rem;
+            font-family: 'Fredoka One', cursive;
+            cursor: pointer;
+            margin-bottom: 24px;
+            transition: all 0.2s;
+        }
+        .translate-btn:hover {
+            background: #334155;
+            color: #f8fafc;
+            border-color: #64748b;
+        }
+
+        .chips-title {
+            font-size: 0.85rem;
+            font-weight: 800;
+            color: #64748b;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 24px;
+            min-height: 40px;
+        }
+        .chip {
+            font-family: 'Fredoka One', cursive;
+            font-size: 0.85rem;
+            padding: 6px 14px;
+            border-radius: 20px;
+            background: #334155;
+            color: #e2e8f0;
+            border: 2px solid #475569;
+            user-select: none;
+        }
+
+        .judge-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+        .btn {
+            padding: 14px 28px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            font-weight: 800;
+            font-family: 'Nunito', sans-serif;
+            transition: transform 0.15s, box-shadow 0.15s;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+        }
+        .btn:hover  { transform: translateY(-2px); box-shadow: 0 6px 0 rgba(0,0,0,0.15); }
+        .btn:active { transform: translateY(2px);  box-shadow: 0 2px 0 rgba(0,0,0,0.15); }
+        .btn-yes { background: #2ed573; color: white; }
+        .btn-no  { background: #475569; color: #cbd5e1; }
+
+        /* Win Overlay */
+        #win-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15,23,42,0.96);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        #win-card {
+            background: #1e293b;
+            padding: 50px 60px;
+            border-radius: 30px;
+            text-align: center;
+            border: 6px solid #475569;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7);
+        }
+        #win-card h2 { font-family: 'Fredoka One', cursive; font-size: 3rem; margin: 0 0 10px; }
+        #win-card p  { font-size: 1.3rem; color: #94a3b8; margin-bottom: 24px; }
+        .win-icons { font-size: 2.5rem; margin-bottom: 24px; letter-spacing: 6px; }
+        .btn-restart { background: #334155; color: white; padding: 16px 40px; font-size: 1.2rem; border: 2px solid #475569; }
+        .btn-restart:hover { background: #475569; }
+
+        /* Teams Configuration (6 Teams in 3 columns) */
+        .teams-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-top: 30px;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .team-card {
+            background: #1e293b;
+            border-radius: 20px;
+            padding: 16px;
+            border: 3px solid #334155;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            transition: transform 0.2s, border-color 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+        .team-card.active-turn {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+        .team-card.t1 { border-color: rgba(255, 71, 87, 0.3); }
+        .team-card.t2 { border-color: rgba(46, 134, 222, 0.3); }
+        .team-card.t3 { border-color: rgba(46, 213, 115, 0.3); }
+        .team-card.t4 { border-color: rgba(255, 165, 2, 0.3); }
+        .team-card.t5 { border-color: rgba(255, 159, 67, 0.3); }
+        .team-card.t6 { border-color: rgba(165, 94, 237, 0.3); }
+
+        .team-card.t1.active-turn { border-color: var(--p1); border-width: 4px; }
+        .team-card.t2.active-turn { border-color: var(--p2); border-width: 4px; }
+        .team-card.t3.active-turn { border-color: var(--p3); border-width: 4px; }
+        .team-card.t4.active-turn { border-color: var(--p4); border-width: 4px; }
+        .team-card.t5.active-turn { border-color: var(--p5); border-width: 4px; }
+        .team-card.t6.active-turn { border-color: var(--p6); border-width: 4px; }
+
+        .team-header {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.1rem;
+            margin: 0 0 12px 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .t1 .team-header { color: var(--p1); }
+        .t2 .team-header { color: var(--p2); }
+        .t3 .team-header { color: var(--p3); }
+        .t4 .team-header { color: var(--p4); }
+        .t5 .team-header { color: var(--p5); }
+        .t6 .team-header { color: var(--p6); }
+
+        .team-badge-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .t1 .team-badge-dot { background: var(--p1); }
+        .t2 .team-badge-dot { background: var(--p2); }
+        .t3 .team-badge-dot { background: var(--p3); }
+        .t4 .team-badge-dot { background: var(--p4); }
+        .t5 .team-badge-dot { background: var(--p5); }
+        .t6 .team-badge-dot { background: var(--p6); }
+
+        .add-student-box {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 12px;
+        }
+        .add-student-box input {
+            flex: 1;
+            background: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            padding: 6px 10px;
+            color: #f8fafc;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 700;
+            font-size: 0.85rem;
+            outline: none;
+            width: 0;
+            min-width: 40px;
+            transition: border-color 0.2s;
+        }
+        .t1 .add-student-box input:focus { border-color: var(--p1); }
+        .t2 .add-student-box input:focus { border-color: var(--p2); }
+        .t3 .add-student-box input:focus { border-color: var(--p3); }
+        .t4 .add-student-box input:focus { border-color: var(--p4); }
+        .t5 .add-student-box input:focus { border-color: var(--p5); }
+        .t6 .add-student-box input:focus { border-color: var(--p6); }
+
+        .add-student-box button {
+            color: white;
+            border: none;
+            border-radius: 8px;
+            width: 32px;
+            height: 32px;
+            font-size: 1.1rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.1s;
+        }
+        .t1 .add-student-box button { background: var(--p1); }
+        .t2 .add-student-box button { background: var(--p2); }
+        .t3 .add-student-box button { background: var(--p3); }
+        .t4 .add-student-box button { background: var(--p4); }
+        .t5 .add-student-box button { background: var(--p5); }
+        .t6 .add-student-box button { background: var(--p6); }
+        .add-student-box button:hover { transform: scale(1.05); }
+
+        .student-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-height: 50px;
+            max-height: 160px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .student-list::-webkit-scrollbar { width: 4px; }
+        .student-list::-webkit-scrollbar-track { background: #1e293b; }
+        .student-list::-webkit-scrollbar-thumb { background: #475569; border-radius: 20px; }
+
+        .student-chip {
+            font-size: 0.85rem;
+            font-weight: 800;
+            padding: 5px 10px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #334155;
+            color: #f8fafc;
+            border: 1px solid #475569;
+            transition: all 0.2s;
+        }
+        .student-chip.current-active {
+            border-width: 2px;
+            animation: pulseActive 2s infinite;
+        }
+        .t1 .student-chip.current-active { border-color: var(--p1); background: rgba(255, 71, 87, 0.15); }
+        .t2 .student-chip.current-active { border-color: var(--p2); background: rgba(46, 134, 222, 0.15); }
+        .t3 .student-chip.current-active { border-color: var(--p3); background: rgba(46, 213, 115, 0.15); }
+        .t4 .student-chip.current-active { border-color: var(--p4); background: rgba(255, 165, 2, 0.15); }
+        .t5 .student-chip.current-active { border-color: var(--p5); background: rgba(255, 159, 67, 0.15); }
+        .t6 .student-chip.current-active { border-color: var(--p6); background: rgba(165, 94, 237, 0.15); }
+
+        @keyframes pulseActive {
+            0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(255, 255, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+        }
+
+        .student-chip .remove-student-btn {
+            cursor: pointer;
+            font-weight: 800;
+            color: #94a3b8;
+            font-size: 1rem;
+            line-height: 1;
+            padding-left: 6px;
+        }
+        .student-chip .remove-student-btn:hover { color: #f43f5e; }
+
+        /* How to Play Side Panel */
+        .how-to-play {
+            position: fixed;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #1e293b;
+            border-radius: 20px;
+            padding: 20px 16px;
+            width: 190px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            border: 3px solid #475569;
+            z-index: 100;
+            font-family: 'Nunito', sans-serif;
+        }
+        .htp-lang-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            margin-bottom: 14px;
+            background: #0f172a;
+            padding: 3px;
+            border-radius: 30px;
+            border: 1px solid #334155;
+        }
+        .lang-btn {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 6px 12px;
+            font-family: 'Fredoka One', cursive;
+            font-size: 0.8rem;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #64748b;
+        }
+        .lang-btn.active {
+            background: #475569;
+            color: white;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+        .htp-title {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.1rem;
+            color: #f8fafc;
+            text-align: center;
+            margin-bottom: 12px;
+            border-bottom: 2px solid #475569;
+            padding-bottom: 8px;
+        }
+        .htp-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 12px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #cbd5e1;
+            line-height: 1.4;
+        }
+        .htp-num {
+            background: #475569;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Fredoka One', cursive;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+        .htp-mini-board {
+            display: grid;
+            grid-template-columns: repeat(4, 14px);
+            gap: 4px;
+            background: var(--board);
+            padding: 5px;
+            border-radius: 8px;
+            margin: 8px auto 0;
+            width: fit-content;
+            border: 2px solid #334155;
+        }
+        .htp-dot { width: 14px; height: 14px; border-radius: 50%; background: #334155; }
+        .htp-dot.r { background: var(--p1); }
+        .htp-dot.b { background: var(--p2); }
+
+        @keyframes pieceDrop {
+            from { transform: translateY(var(--drop-y)); }
+            to   { transform: translateY(0); }
+        }
+        .slot.dropping {
+            animation: pieceDrop 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        /* Power-ups Styling */
+        .power-active-bar {
+            display: none;
+            background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+            color: #ffffff;
+            padding: 12px 24px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            font-weight: 800;
+            font-size: 1rem;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 720px;
+            box-shadow: 0 4px 15px rgba(225, 29, 72, 0.3);
+            border: 2px solid #fda4af;
+        }
+
+        .power-active-bar button {
+            background: rgba(0, 0, 0, 0.2);
+            border: 2px solid white;
+            color: white;
+            border-radius: 8px;
+            padding: 6px 16px;
+            font-family: 'Fredoka One', cursive;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .power-active-bar button:hover {
+            background: white;
+            color: #be123c;
+        }
+
+        .team-powers {
+            display: flex;
+            gap: 6px;
+            margin-top: 12px;
+            justify-content: space-between;
+            border-top: 2px dashed #334155;
+            padding-top: 12px;
+        }
+
+        .power-btn {
+            flex: 1;
+            background: #334155;
+            border: 2px solid #475569;
+            color: #fff;
+            border-radius: 10px;
+            padding: 6px 2px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            position: relative;
+        }
+
+        .power-btn:hover:not(:disabled) {
+            background: #475569;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .power-btn:disabled {
+            opacity: 0.25;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .power-btn.active-power {
+            background: #ef4444 !important;
+            border-color: #fca5a5 !important;
+            animation: pulsePower 1.2s infinite alternate;
+        }
+
+        @keyframes pulsePower {
+            from { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            to { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+        }
+
+        .power-count {
+            font-size: 0.7rem;
+            font-weight: 800;
+            background: #0f172a;
+            padding: 1px 5px;
+            border-radius: 10px;
+            color: #94a3b8;
+        }
+
+        /* Blocker slot styling */
+        .slot.blocker-slot {
+            background: #475569 !important;
+            box-shadow: 0 0 10px rgba(71, 85, 105, 0.5), inset 0 -4px 6px rgba(0,0,0,0.5);
+            border-color: #64748b;
+        }
+
+        /* Power-up Targets Highlight */
+        .slot.target-bomb {
+            cursor: pointer;
+            animation: pulseBombTarget 1s infinite alternate;
+        }
+
+        @keyframes pulseBombTarget {
+            from { box-shadow: 0 0 4px #ef4444; border-color: #ef4444; }
+            to { box-shadow: 0 0 18px #ef4444, inset 0 -4px 6px rgba(0,0,0,0.3); border-color: #fca5a5; }
+        }
+
+        .slot.target-recolor {
+            cursor: pointer;
+            animation: pulseRecolorTarget 1s infinite alternate;
+        }
+
+        @keyframes pulseRecolorTarget {
+            from { box-shadow: 0 0 4px #a855f7; border-color: #a855f7; }
+            to { box-shadow: 0 0 18px #a855f7, inset 0 -4px 6px rgba(0,0,0,0.3); border-color: #d8b4fe; }
+        }
+
+        .column.target-column {
+            background: rgba(255, 255, 255, 0.08) !important;
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.15) inset;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .how-to-play { display: none; }
+        }
+        @media (max-width: 900px) {
+            .teams-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 560px) {
+            h1 { font-size: 1.6rem; }
+            .col-num { font-size: 1rem; padding: 4px 0; }
+            .board { gap: 4px; padding: 6px; }
+            .teams-grid { grid-template-columns: 1fr; }
+            #q-card { padding: 24px 20px; }
+            #q-text { font-size: 1.25rem; }
+            .emoji-display { width: 90px; height: 90px; font-size: 50px; }
+            #win-card { padding: 36px 20px; }
+            #win-card h2 { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<h1>💬 Connect 4 – Vietnamese ESL Arena</h1>
+<div class="subtitle">🔴 Red · 🔵 Blue · 🟢 Green · 🟡 Yellow · 🟠 Orange · 🟣 Purple</div>
+
+<div id="status" class="status-bar p1-turn">🔴 Team Red's Turn!</div>
+
+<!-- Active Power Bar -->
+<div id="power-active-bar" class="power-active-bar">
+    <span id="power-active-text">💥 BOMB ACTIVE: Click any piece on the board to destroy it!</span>
+    <button onclick="cancelPower()">Cancel</button>
+</div>
+
+<div class="board-wrapper">
+    <div class="column-numbers" id="col-nums">
+        <div class="col-num" onclick="handleColumnClick(0)">1</div>
+        <div class="col-num" onclick="handleColumnClick(1)">2</div>
+        <div class="col-num" onclick="handleColumnClick(2)">3</div>
+        <div class="col-num" onclick="handleColumnClick(3)">4</div>
+        <div class="col-num" onclick="handleColumnClick(4)">5</div>
+        <div class="col-num" onclick="handleColumnClick(5)">6</div>
+        <div class="col-num" onclick="handleColumnClick(6)">7</div>
+        <div class="col-num" onclick="handleColumnClick(7)">8</div>
+        <div class="col-num" onclick="handleColumnClick(8)">9</div>
+    </div>
+    <div class="board" id="board"></div>
+</div>
+
+<!-- Teams panel (6 Teams Grid) -->
+<div class="teams-grid">
+    <div class="team-card t1 active-turn" id="card-team-1">
+        <h3 class="team-header"><span class="team-badge-dot"></span> <span class="t-name" data-en="Team Red" data-vi="Nhóm Đỏ">Team Red</span></h3>
+        <div class="add-student-box">
+            <input type="text" id="t1-input" placeholder="Name..." onkeydown="if(event.key === 'Enter') addStudent(1)">
+            <button onclick="addStudent(1)">+</button>
+        </div>
+        <div class="student-list" id="t1-list"></div>
+        <div class="team-powers" id="t1-powers"></div>
+    </div>
+    <div class="team-card t2" id="card-team-2">
+        <h3 class="team-header"><span class="team-badge-dot"></span> <span class="t-name" data-en="Team Blue" data-vi="Nhóm Xanh">Team Blue</span></h3>
+        <div class="add-student-box">
+            <input type="text" id="t2-input" placeholder="Name..." onkeydown="if(event.key === 'Enter') addStudent(2)">
+            <button onclick="addStudent(2)">+</button>
+        </div>
+        <div class="student-list" id="t2-list"></div>
+        <div class="team-powers" id="t2-powers"></div>
+    </div>
+    <div class="team-card t3" id="card-team-3">
+        <h3 class="team-header"><span class="team-badge-dot"></span> <span class="t-name" data-en="Team Green" data-vi="Nhóm Lục">Team Green</span></h3>
+        <div class="add-student-box">
+            <input type="text" id="t3-input" placeholder="Name..." onkeydown="if(event.key === 'Enter') addStudent(3)">
+            <button onclick="addStudent(3)">+</button>
+        </div>
+        <div class="student-list" id="t3-list"></div>
+        <div class="team-powers" id="t3-powers"></div>
+    </div>
+    <div class="team-card t4" id="card-team-4">
+        <h3 class="team-header"><span class="team-badge-dot"></span> <span class="t-name" data-en="Team Yellow" data-vi="Nhóm Vàng">Team Yellow</span></h3>
+        <div class="add-student-box">
+            <input type="text" id="t4-input" placeholder="Name..." onkeydown="if(event.key === 'Enter') addStudent(4)">
+            <button onclick="addStudent(4)">+</button>
+        </div>
+        <div class="student-list" id="t4-list"></div>
+        <div class="team-powers" id="t4-powers"></div>
+    </div>
+    <div class="team-card t5" id="card-team-5">
+        <h3 class="team-header"><span class="team-badge-dot"></span> <span class="t-name" data-en="Team Orange" data-vi="Nhóm Cam">Team Orange</span></h3>
+        <div class="add-student-box">
+            <input type="text" id="t5-input" placeholder="Name..." onkeydown="if(event.key === 'Enter') addStudent(5)">
+            <button onclick="addStudent(5)">+</button>
+        </div>
+        <div class="student-list" id="t5-list"></div>
+        <div class="team-powers" id="t5-powers"></div>
+    </div>
+    <div class="team-card t6" id="card-team-6">
+        <h3 class="team-header"><span class="team-badge-dot"></span> <span class="t-name" data-en="Team Purple" data-vi="Nhóm Tím">Team Purple</span></h3>
+        <div class="add-student-box">
+            <input type="text" id="t6-input" placeholder="Name..." onkeydown="if(event.key === 'Enter') addStudent(6)">
+            <button onclick="addStudent(6)">+</button>
+        </div>
+        <div class="student-list" id="t6-list"></div>
+        <div class="team-powers" id="t6-powers"></div>
+    </div>
+</div>
+
+<!-- Question Overlay -->
+<div id="overlay">
+    <div id="q-card">
+        <div id="player-badge" class="player-badge badge-p1">🔴 Team Red</div>
+        <div class="emoji-display" id="q-emoji">💬</div>
+        <div id="cat-badge" class="category-badge cat-pronunciation">Pronunciation</div>
+        <div id="q-text">Loading question...</div>
+        
+        <div id="q-translation">Bản dịch Tiếng Việt hiển thị ở đây...</div>
+        <button class="translate-btn" id="btn-translate-toggle" onclick="toggleTranslation()">🇻🇳 Hiện Gợi Ý / Dịch</button>
+        
+        <div class="chips-title" id="chips-title">Key Words / Từ gợi ý:</div>
+        <div class="chips" id="q-chips"></div>
+
+        <div class="judge-btns">
+            <button class="btn btn-no" onclick="handleJudge(false)">❌ Try Again / Pass</button>
+            <button class="btn btn-yes" onclick="handleJudge(true)">✅ Correct / Shared!</button>
+        </div>
+    </div>
+</div>
+
+<!-- Win Overlay -->
+<div id="win-overlay">
+    <div id="win-card">
+        <h2 id="win-title">🎉 Team Red Wins!</h2>
+        <p id="win-desc">Spectacular connecting — well played!</p>
+        <div class="win-icons">🏆🌟🚀🎉</div>
+        <button class="btn btn-restart" onclick="location.reload()">🔄 Play Again</button>
+    </div>
+</div>
+
+<!-- How to Play Side Panel -->
+<div class="how-to-play">
+    <div class="htp-lang-toggle">
+        <button class="lang-btn active" id="lang-en" onclick="setInstructionsLang('en')">EN</button>
+        <button class="lang-btn" id="lang-vi" onclick="setInstructionsLang('vi')">VI</button>
+    </div>
+    <div class="htp-title" id="htp-title">📖 How to Play</div>
+    <div class="htp-step"><div class="htp-num">1</div><div id="htp-step-1">Pick a column (1–9)</div></div>
+    <div class="htp-step"><div class="htp-num">2</div><div id="htp-step-2">Answer the ESL question</div></div>
+    <div class="htp-step"><div class="htp-num">3</div><div id="htp-step-3">Teacher scores correct</div></div>
+    <div class="htp-step"><div class="htp-num">4</div><div id="htp-step-4">Connect 4 in a row to win!</div></div>
+    <div class="htp-mini-board">
+        <div class="htp-dot"></div><div class="htp-dot r"></div><div class="htp-dot"></div><div class="htp-dot"></div>
+        <div class="htp-dot r"></div><div class="htp-dot b"></div><div class="htp-dot"></div><div class="htp-dot"></div>
+        <div class="htp-dot r"></div><div class="htp-dot b"></div><div class="htp-dot b"></div><div class="htp-dot"></div>
+        <div class="htp-dot r"></div><div class="htp-dot r"></div><div class="htp-dot r"></div><div class="htp-dot r"></div>
+    </div>
+</div>
+
+<script>
+    const ROWS = 8, COLS = 9;
+    let currentPlayer = 1; // 1: Red, 2: Blue, 3: Green, 4: Yellow, 5: Orange, 6: Purple
+    let boardState = Array(COLS).fill(null).map(() => Array(ROWS).fill(null));
+    let activeCol = null;
+    let translationVisible = false;
+    let currentTranslation = '';
+    let currentInstructionsLang = 'en';
+
+    // Power-ups State
+    let teamPowers = {
+        1: { bomb: 1, recolor: 1, blocker: 1, earthquake: 1 },
+        2: { bomb: 1, recolor: 1, blocker: 1, earthquake: 1 },
+        3: { bomb: 1, recolor: 1, blocker: 1, earthquake: 1 },
+        4: { bomb: 1, recolor: 1, blocker: 1, earthquake: 1 },
+        5: { bomb: 1, recolor: 1, blocker: 1, earthquake: 1 },
+        6: { bomb: 1, recolor: 1, blocker: 1, earthquake: 1 }
+    };
+    let activePower = null;
+    let pendingPowerAction = null;
+
+    // Roster lists for 6 teams
+    let rosters = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] };
+    let rosterIndices = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+
+    // ─── INTERMEDIATE ESL QUESTIONS ──────────────────────────────────
+    const questions = [
+        // 🔊 Category: Pronunciation (Phát âm nâng cao)
+        {
+            cat: 'pronunciation', emoji: '🛋️',
+            q: 'Pronounce "comfortable" with correct stress on the first syllable.',
+            vi: 'Phát âm đúng trọng âm: "comfortable" (nhấn âm 1: COM-fort-able, không đọc com-for-ta-ble).',
+            chips: ['/ˈkʌmftəbl/', 'Stress on 1st syllable']
+        },
+        {
+            cat: 'pronunciation', emoji: '🤐',
+            q: 'Pronounce these words clearly: "doubt" and "receipt".',
+            vi: 'Phát âm đúng âm câm trong từ "doubt" (âm b câm) và "receipt" (âm p câm).',
+            chips: ['doubt /daʊt/', 'receipt /rɪˈsiːt/']
+        },
+        {
+            cat: 'pronunciation', emoji: '💭',
+            q: 'Say the difference: "think" vs. "sink".',
+            vi: 'Phát âm phân biệt âm đầu: "think" (âm /θ/ đặt lưỡi giữa răng) và "sink" (âm /s/).',
+            chips: ['think /θ/', 'sink /s/']
+        },
+        {
+            cat: 'pronunciation', emoji: '🛠️',
+            q: 'Pronounce the "-ed" endings clearly: "worked" vs. "played".',
+            vi: 'Phát âm phân biệt đuôi "-ed": "worked" (âm cuối /t/) và "played" (âm cuối /d/).',
+            chips: ['worked /wɜːrkt/', 'played /pleɪd/']
+        },
+        {
+            cat: 'pronunciation', emoji: '🐾',
+            q: 'Pronounce the "-s" endings clearly: "cats" vs. "dogs".',
+            vi: 'Phát âm phân biệt đuôi "-s": "cats" (âm cuối /s/) và "dogs" (âm cuối /z/).',
+            chips: ['cats /kæts/', 'dogs /dɔːɡz/']
+        },
+        {
+            cat: 'pronunciation', emoji: '👚',
+            q: 'Pronounce the words "clothes" and "months" clearly.',
+            vi: 'Phát âm rõ ràng cụm âm cuối khó: "clothes" (/kloʊðz/) và "months" (/mʌnθs/).',
+            chips: ['clothes /kloʊðz/', 'months /mʌnθs/']
+        },
+        {
+            cat: 'pronunciation', emoji: '📖',
+            q: 'Pronounce "vocabulary" with correct stress on the second syllable.',
+            vi: 'Phát âm đúng trọng âm: "vocabulary" (nhấn âm 2: vo-CAB-u-lar-y).',
+            chips: ['/vəˈkæbjəleri/', 'Stress on 2nd syllable']
+        },
+        {
+            cat: 'pronunciation', emoji: '🚢',
+            q: 'Say the difference: "sheep" vs. "ship".',
+            vi: 'Phát âm phân biệt nguyên âm: "sheep" (âm /iː/ kéo dài) và "ship" (âm /ɪ/ ngắn bật nhanh).',
+            chips: ['sheep /ʃiːp/', 'ship /ʃɪp/']
+        },
+
+        // 📝 Category: Grammar (Ngữ pháp trung cấp)
+        {
+            cat: 'grammar', emoji: '🇻🇳',
+            q: 'Fill in: "I __________ (live) in Hanoi for 3 years."',
+            vi: 'Điền động từ thì Hiện tại Hoàn thành: "I __________ in Hanoi for 3 years." (hành động kéo dài từ quá khứ đến nay)',
+            chips: ['have lived', 'present perfect']
+        },
+        {
+            cat: 'grammar', emoji: '🔔',
+            q: 'Fill in: "While I was studying, my phone __________ (ring)."',
+            vi: 'Điền động từ chia ở quá khứ: "While I was studying, my phone __________." (hành động đang xảy ra bị xen vào)',
+            chips: ['rang', 'simple past']
+        },
+        {
+            cat: 'grammar', emoji: '🌤️',
+            q: 'Complete: "If it rains tomorrow, we __________ (cancel) the picnic."',
+            vi: 'Hoàn thành câu điều kiện loại 1 (sự việc có thể xảy ra ở tương lai): "If it rains tomorrow, we __________ the picnic."',
+            chips: ['will cancel', 'first conditional']
+        },
+        {
+            cat: 'grammar', emoji: '💰',
+            q: 'Complete: "If I __________ (have) a million dollars, I would buy a house."',
+            vi: 'Hoàn thành câu điều kiện loại 2 (giả định không có thật ở hiện tại): "If I __________ a million dollars, I would buy..."',
+            chips: ['had', 'second conditional']
+        },
+        {
+            cat: 'grammar', emoji: '🍳',
+            q: 'Change to passive: "The chef cooked a delicious dinner."',
+            vi: 'Chuyển sang câu bị động: "The chef cooked a delicious dinner." -> "A delicious dinner..."',
+            chips: ['A delicious dinner was cooked', 'by the chef']
+        },
+        {
+            cat: 'grammar', emoji: '🤝',
+            q: 'Fill in: "I look forward to __________ (meet) you soon."',
+            vi: 'Điền dạng đúng của động từ: "I look forward to __________ you soon." (Chú ý cấu trúc look forward to + V-ing)',
+            chips: ['meeting', 'V-ing form']
+        },
+        {
+            cat: 'grammar', emoji: '👤',
+            q: 'Combine with relative clause: "The man is my uncle. He is wearing a blue shirt."',
+            vi: 'Nối câu dùng đại từ quan hệ (who/which/whom): "The man..."',
+            chips: ['The man who is wearing...', 'is my uncle']
+        },
+        {
+            cat: 'grammar', emoji: '📏',
+            q: 'Correct the sentence: "He is more taller than his brother."',
+            vi: 'Sửa lỗi sai so sánh hơn: "He is more taller than his brother."',
+            chips: ['taller than', 'remove "more"']
+        },
+
+        // 🎯 Category: Vocabulary (Từ vựng trung cấp)
+        {
+            cat: 'vocabulary', emoji: '🛑',
+            q: 'What does "give up" mean? Give a sentence example.',
+            vi: 'Nghĩa của cụm từ "give up" là gì? Đặt câu ví dụ bằng tiếng Anh.',
+            chips: ['stop trying / quit', 'e.g., I will never give up']
+        },
+        {
+            cat: 'vocabulary', emoji: '✏️',
+            q: 'Choose the correct word: "I need to __________ (make / do) my homework."',
+            vi: 'Chọn từ đi kèm đúng với "homework": "make" hay "do"?',
+            chips: ['do my homework', 'do']
+        },
+        {
+            cat: 'vocabulary', emoji: '🌸',
+            q: 'What is a synonym for the word "beautiful"? (Give 2 synonyms)',
+            vi: 'Tìm 2 từ đồng nghĩa với "beautiful" (đẹp).',
+            chips: ['pretty, gorgeous', 'stunning, lovely']
+        },
+        {
+            cat: 'vocabulary', emoji: '🎁',
+            q: 'What is the opposite (antonym) of the word "generous"?',
+            vi: 'Tìm từ trái nghĩa với từ "generous" (hào phóng).',
+            chips: ['selfish', 'mean', 'stingy']
+        },
+        {
+            cat: 'vocabulary', emoji: '📺',
+            q: 'Fill in: "Could you please turn __________ the TV? I want to sleep."',
+            vi: 'Điền giới từ thích hợp cho phrasal verb: "turn ___ the TV" (tắt TV).',
+            chips: ['off', 'turn off']
+        },
+        {
+            cat: 'vocabulary', emoji: '🍰',
+            q: 'What does the idiom "piece of cake" mean?',
+            vi: 'Thành ngữ "piece of cake" nghĩa là gì? Đặt câu ví dụ.',
+            chips: ['very easy', 'dễ như ăn bánh']
+        },
+        {
+            cat: 'vocabulary', emoji: '🤝',
+            q: 'What is the negative prefix for "polite"? (un- / im- / dis-?)',
+            vi: 'Tiền tố phủ định của từ "polite" (lịch sự) là gì? (bất lịch sự).',
+            chips: ['impolite']
+        },
+        {
+            cat: 'vocabulary', emoji: '✈️',
+            q: 'Complete the compound noun: "The plane landed safely at the air__________."',
+            vi: 'Hoàn thành danh từ ghép: "air__________" (sân bay).',
+            chips: ['airport']
+        },
+
+        // 💬 Category: Speech Starters (Giao tiếp mở rộng)
+        {
+            cat: 'speech', emoji: '💻',
+            q: 'State your opinion about online learning in 2 English sentences.',
+            vi: 'Nêu ý kiến của em về việc học trực tuyến bằng 2 câu tiếng Anh (dùng: In my opinion / I think...).',
+            chips: ['In my opinion...', 'I think online learning is...']
+        },
+        {
+            cat: 'speech', emoji: '🗺️',
+            q: 'How do you get from your house to the nearest supermarket? (Explain in English)',
+            vi: 'Chỉ đường từ nhà em đến siêu thị gần nhất bằng tiếng Anh (dùng: turn left, turn right, go straight...).',
+            chips: ['Go straight...', 'Turn left/right at...']
+        },
+        {
+            cat: 'speech', emoji: '🏖️',
+            q: 'Describe your best holiday experience in 3 English sentences using past tense.',
+            vi: 'Mô tả kỳ nghỉ tuyệt vời nhất của em bằng 3 câu tiếng Anh (dùng thì quá khứ đơn).',
+            chips: ['Last year, I went to...', 'It was...', 'I enjoyed...']
+        },
+        {
+            cat: 'speech', emoji: '❄️',
+            q: 'Do you prefer summer or winter? Explain why in 2 sentences.',
+            vi: 'Em thích mùa hè hay mùa đông hơn? Giải thích tại sao bằng 2 câu tiếng Anh.',
+            chips: ['I prefer summer because...', 'I like winter because...']
+        },
+        {
+            cat: 'speech', emoji: '✈️',
+            q: 'If you could travel anywhere in the world, where would you go and why?',
+            vi: 'Nếu có thể du lịch bất cứ đâu, em sẽ đi đâu và tại sao? (dùng câu điều kiện loại 2: If I could..., I would...)',
+            chips: ['If I could..., I would go to...', 'because I want to...']
+        },
+        {
+            cat: 'speech', emoji: '🎓',
+            q: 'Why is learning English important for your future? Explain in 2 sentences.',
+            vi: 'Tại sao việc học tiếng Anh lại quan trọng cho tương lai của em? Giải thích trong 2 câu.',
+            chips: ['Learning English helps me...', 'It is important because...']
+        }
+    ];
+
+    let deck = [];
+    function getNextQuestion() {
+        if (deck.length === 0) deck = questions.map((_, i) => i).sort(() => Math.random() - 0.5);
+        return questions[deck.pop()];
+    }
+
+    // ─── AUDIO SYNTHESIS ──────────────────────────────────────────────────────
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSound(type) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        if (type === 'correct') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+            osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.12); // E5
+            osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.24); // G5
+        } else {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(120, audioCtx.currentTime + 0.15);
+        }
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.45);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.45);
+    }
+
+    // ─── BOARD INITIALIZATION ────────────────────────────────────────────────
+    function initBoard() {
+        const board = document.getElementById('board');
+        board.innerHTML = '';
+        for (let c = 0; c < COLS; c++) {
+            const colDiv = document.createElement('div');
+            colDiv.className = 'column';
+            colDiv.onclick = () => handleColumnClick(c);
+            for (let r = 0; r < ROWS; r++) {
+                const slot = document.createElement('div');
+                slot.className = 'slot';
+                slot.id = `slot-${c}-${r}`;
+                slot.onclick = (e) => handleSlotClick(c, r, e);
+                colDiv.appendChild(slot);
+            }
+            board.appendChild(colDiv);
+        }
+    }
+
+    // Sync boardState array to visual slots
+    function drawBoard() {
+        for (let c = 0; c < COLS; c++) {
+            for (let r = 0; r < ROWS; r++) {
+                const slot = document.getElementById(`slot-${c}-${r}`);
+                if (!slot) continue;
+                slot.className = 'slot';
+                const state = boardState[c][r];
+                if (state) {
+                    if (state === 'blocker') {
+                        slot.classList.add('blocker-slot');
+                    } else {
+                        slot.classList.add(`p${state}`);
+                    }
+                }
+            }
+        }
+        updateColumnNumbers();
+    }
+
+    function updateColumnNumbers() {
+        const nums = document.querySelectorAll('.col-num');
+        nums.forEach((el, c) => {
+            if (boardState[c].indexOf(null) === -1) {
+                el.classList.add('full');
+            } else {
+                el.classList.remove('full');
+            }
+        });
+    }
+
+    // ─── ROSTER CONTROL ──────────────────────────────────────────────────────
+    function addStudent(teamNum) {
+        const input = document.getElementById(`t${teamNum}-input`);
+        const name = input.value.trim();
+        if (!name) return;
+        rosters[teamNum].push(name);
+        input.value = '';
+        renderStudentList(teamNum);
+        updateStatusDisplay();
+    }
+
+    function removeStudent(teamNum, index) {
+        rosters[teamNum].splice(index, 1);
+        if (rosterIndices[teamNum] >= rosters[teamNum].length) {
+            rosterIndices[teamNum] = 0;
+        }
+        renderStudentList(teamNum);
+        updateStatusDisplay();
+    }
+
+    function renderStudentList(teamNum) {
+        const listDiv = document.getElementById(`t${teamNum}-list`);
+        listDiv.innerHTML = '';
+        rosters[teamNum].forEach((name, index) => {
+            const chip = document.createElement('div');
+            const isActivePlayer = (currentPlayer === teamNum && rosterIndices[teamNum] === index);
+            chip.className = `student-chip ${isActivePlayer ? 'current-active' : ''}`;
+            chip.innerHTML = `
+                <span>${name}</span>
+                <span class="remove-student-btn" onclick="removeStudent(${teamNum}, ${index})">×</span>
+            `;
+            listDiv.appendChild(chip);
+        });
+    }
+
+    function getActivePlayerName(teamNum) {
+        const roster = rosters[teamNum];
+        if (roster.length === 0) return '';
+        const idx = rosterIndices[teamNum] % roster.length;
+        return roster[idx];
+    }
+
+    function advanceRosterIndex(teamNum) {
+        const roster = rosters[teamNum];
+        if (roster.length > 0) {
+            rosterIndices[teamNum] = (rosterIndices[teamNum] + 1) % roster.length;
+        }
+    }
+
+    // ─── POWER-UPS ACTIONS ───────────────────────────────────────────────────
+    function selectPower(type) {
+        if (activePower === type) {
+            cancelPower();
+            return;
+        }
+        activePower = type;
+        
+        const bar = document.getElementById('power-active-bar');
+        const text = document.getElementById('power-active-text');
+        bar.style.display = 'flex';
+        
+        const teamColors = { 1: 'Red', 2: 'Blue', 3: 'Green', 4: 'Yellow', 5: 'Orange', 6: 'Purple' };
+        const color = teamColors[currentPlayer];
+        
+        if (type === 'bomb') {
+            text.innerText = `💥 BOMB ACTIVE (Team ${color}): Click any piece on the board to destroy it!`;
+        } else if (type === 'recolor') {
+            text.innerText = `🎨 RECOLOR ACTIVE (Team ${color}): Click any opponent's piece to convert it!`;
+        } else if (type === 'blocker') {
+            text.innerText = `🧱 BLOCKER ACTIVE (Team ${color}): Click a column to drop a blocker block!`;
+        } else if (type === 'earthquake') {
+            text.innerText = `🌪️ EARTHQUAKE ACTIVE (Team ${color}): Answer question to trigger Earthquake!`;
+            triggerPowerQuestion({ type: 'earthquake' });
+        }
+        
+        renderPowers();
+        highlightTargets();
+    }
+
+    function cancelPower() {
+        activePower = null;
+        pendingPowerAction = null;
+        const bar = document.getElementById('power-active-bar');
+        if (bar) bar.style.display = 'none';
+        clearHighlights();
+        renderPowers();
+    }
+
+    function highlightTargets() {
+        clearHighlights();
+        if (!activePower) return;
+        
+        if (activePower === 'bomb') {
+            for (let c = 0; c < COLS; c++) {
+                for (let r = 0; r < ROWS; r++) {
+                    if (boardState[c][r] !== null) {
+                        const slot = document.getElementById(`slot-${c}-${r}`);
+                        if (slot) slot.classList.add('target-bomb');
+                    }
+                }
+            }
+        } else if (activePower === 'recolor') {
+            for (let c = 0; c < COLS; c++) {
+                for (let r = 0; r < ROWS; r++) {
+                    if (boardState[c][r] !== null && boardState[c][r] !== 'blocker' && boardState[c][r] !== currentPlayer) {
+                        const slot = document.getElementById(`slot-${c}-${r}`);
+                        if (slot) slot.classList.add('target-recolor');
+                    }
+                }
+            }
+        } else if (activePower === 'blocker') {
+            for (let c = 0; c < COLS; c++) {
+                if (boardState[c].indexOf(null) !== -1) {
+                    const colDiv = document.getElementById('board').children[c];
+                    if (colDiv) colDiv.classList.add('target-column');
+                }
+            }
+        }
+    }
+
+    function clearHighlights() {
+        for (let c = 0; c < COLS; c++) {
+            for (let r = 0; r < ROWS; r++) {
+                const slot = document.getElementById(`slot-${c}-${r}`);
+                if (slot) {
+                    slot.classList.remove('target-bomb', 'target-recolor');
+                }
+            }
+            const colDiv = document.getElementById('board').children[c];
+            if (colDiv) {
+                colDiv.classList.remove('target-column');
+            }
+        }
+    }
+
+    function renderPowers() {
+        for (let i = 1; i <= 6; i++) {
+            const container = document.getElementById(`t${i}-powers`);
+            if (!container) continue;
+            
+            const isMyTurn = (currentPlayer === i);
+            const powers = teamPowers[i];
+            
+            container.innerHTML = `
+                <button class="power-btn ${activePower === 'bomb' && isMyTurn ? 'active-power' : ''}" 
+                        onclick="selectPower('bomb')" 
+                        ${!isMyTurn || powers.bomb <= 0 ? 'disabled' : ''} 
+                        title="Bomb: Destroy an opponent's piece. Pieces above will slide down.">
+                    <span>💥</span>
+                    <span class="power-count">${powers.bomb}</span>
+                </button>
+                <button class="power-btn ${activePower === 'recolor' && isMyTurn ? 'active-power' : ''}" 
+                        onclick="selectPower('recolor')" 
+                        ${!isMyTurn || powers.recolor <= 0 ? 'disabled' : ''} 
+                        title="Recolor: Change an opponent's piece to your team color.">
+                    <span>🎨</span>
+                    <span class="power-count">${powers.recolor}</span>
+                </button>
+                <button class="power-btn ${activePower === 'blocker' && isMyTurn ? 'active-power' : ''}" 
+                        onclick="selectPower('blocker')" 
+                        ${!isMyTurn || powers.blocker <= 0 ? 'disabled' : ''} 
+                        title="Blocker: Drop a grey blocker block that cannot be connected.">
+                    <span>🧱</span>
+                    <span class="power-count">${powers.blocker}</span>
+                </button>
+                <button class="power-btn ${activePower === 'earthquake' && isMyTurn ? 'active-power' : ''}" 
+                        onclick="selectPower('earthquake')" 
+                        ${!isMyTurn || powers.earthquake <= 0 ? 'disabled' : ''} 
+                        title="Earthquake: Clear the bottom row, dropping all pieces down.">
+                    <span>🌪️</span>
+                    <span class="power-count">${powers.earthquake}</span>
+                </button>
+            `;
+        }
+    }
+
+    function handleSlotClick(c, r, event) {
+        if (!activePower) return;
+        event.stopPropagation(); // Stop column click
+        
+        if (activePower === 'bomb') {
+            if (boardState[c][r] === null) return;
+            triggerPowerQuestion({ type: 'bomb', c, r });
+        } else if (activePower === 'recolor') {
+            if (boardState[c][r] === null || boardState[c][r] === 'blocker' || boardState[c][r] === currentPlayer) return;
+            triggerPowerQuestion({ type: 'recolor', c, r });
+        }
+    }
+
+    function triggerPowerQuestion(action) {
+        pendingPowerAction = action;
+        translationVisible = false;
+        document.getElementById('q-translation').style.display = 'none';
+        document.getElementById('btn-translate-toggle').innerText = '🇻🇳 Hiện Gợi Ý / Dịch';
+
+        const q = getNextQuestion();
+        currentTranslation = q.vi;
+
+        document.getElementById('q-text').innerText = q.q;
+        document.getElementById('q-emoji').innerText = q.emoji;
+        
+        const catBadge = document.getElementById('cat-badge');
+        catBadge.innerText = q.cat;
+        catBadge.className = `category-badge cat-${q.cat}`;
+
+        const chipsDiv = document.getElementById('q-chips');
+        chipsDiv.innerHTML = '';
+        q.chips.forEach(text => {
+            const chip = document.createElement('div');
+            chip.className = 'chip';
+            chip.innerText = text;
+            chipsDiv.appendChild(chip);
+        });
+
+        const badge = document.getElementById('player-badge');
+        const teamColors = { 1: 'Red', 2: 'Blue', 3: 'Green', 4: 'Yellow', 5: 'Orange', 6: 'Purple' };
+        const studentName = getActivePlayerName(currentPlayer);
+        const nameDisplay = studentName ? ` (${studentName})` : '';
+        
+        let powerName = '';
+        if (action.type === 'bomb') powerName = ' [💥 BOMB]';
+        else if (action.type === 'recolor') powerName = ' [🎨 RECOLOR]';
+        else if (action.type === 'blocker') powerName = ' [🧱 BLOCKER]';
+        else if (action.type === 'earthquake') powerName = ' [🌪️ EARTHQUAKE]';
+
+        badge.innerText = `Team ${teamColors[currentPlayer]}${nameDisplay}${powerName}`;
+        badge.className = `player-badge badge-p${currentPlayer}`;
+
+        document.getElementById('overlay').style.display = 'flex';
+    }
+
+    // ─── GAME LOOP & CLICK HANDLERS ──────────────────────────────────────────
+    function handleColumnClick(c) {
+        if (activePower === 'bomb' || activePower === 'recolor') {
+            // Must click a slot, not a column
+            return;
+        }
+        if (activePower === 'blocker') {
+            if (boardState[c].indexOf(null) === -1) return;
+            triggerPowerQuestion({ type: 'blocker', c });
+            return;
+        }
+        
+        if (boardState[c].indexOf(null) === -1) return; // column full
+        activeCol = c;
+        translationVisible = false;
+        document.getElementById('q-translation').style.display = 'none';
+        document.getElementById('btn-translate-toggle').innerText = '🇻🇳 Hiện Gợi Ý / Dịch';
+
+        const q = getNextQuestion();
+        currentTranslation = q.vi;
+
+        document.getElementById('q-text').innerText = q.q;
+        document.getElementById('q-emoji').innerText = q.emoji;
+        
+        const catBadge = document.getElementById('cat-badge');
+        catBadge.innerText = q.cat;
+        catBadge.className = `category-badge cat-${q.cat}`;
+
+        const chipsDiv = document.getElementById('q-chips');
+        chipsDiv.innerHTML = '';
+        q.chips.forEach(text => {
+            const chip = document.createElement('div');
+            chip.className = 'chip';
+            chip.innerText = text;
+            chipsDiv.appendChild(chip);
+        });
+
+        const badge = document.getElementById('player-badge');
+        const teamColors = { 1: 'Red', 2: 'Blue', 3: 'Green', 4: 'Yellow', 5: 'Orange', 6: 'Purple' };
+        const studentName = getActivePlayerName(currentPlayer);
+        const nameDisplay = studentName ? ` (${studentName})` : '';
+        
+        badge.innerText = `Team ${teamColors[currentPlayer]}${nameDisplay}`;
+        badge.className = `player-badge badge-p${currentPlayer}`;
+
+        document.getElementById('overlay').style.display = 'flex';
+    }
+
+    function toggleTranslation() {
+        translationVisible = !translationVisible;
+        const panel = document.getElementById('q-translation');
+        if (translationVisible) {
+            panel.innerText = currentTranslation;
+            panel.style.display = 'block';
+            document.getElementById('btn-translate-toggle').innerText = '🙈 Ẩn Gợi Ý';
+        } else {
+            panel.style.display = 'none';
+            document.getElementById('btn-translate-toggle').innerText = '🇻🇳 Hiện Gợi Ý / Dịch';
+        }
+    }
+
+    function handleJudge(isCorrect) {
+        document.getElementById('overlay').style.display = 'none';
+        if (!isCorrect) {
+            playSound('wrong');
+            cancelPower();
+            rotateTurn();
+            return;
+        }
+
+        playSound('correct');
+
+        if (pendingPowerAction) {
+            const action = pendingPowerAction;
+            pendingPowerAction = null;
+            
+            if (action.type === 'bomb') {
+                boardState[action.c].splice(action.r, 1);
+                boardState[action.c].push(null);
+                teamPowers[currentPlayer].bomb--;
+            } 
+            else if (action.type === 'recolor') {
+                boardState[action.c][action.r] = currentPlayer;
+                teamPowers[currentPlayer].recolor--;
+            }
+            else if (action.type === 'blocker') {
+                const r = boardState[action.c].indexOf(null);
+                boardState[action.c][r] = 'blocker';
+                teamPowers[currentPlayer].blocker--;
+                
+                // Animate dropping blocker
+                drawBoard();
+                const slot = document.getElementById(`slot-${action.c}-${r}`);
+                if (slot) {
+                    const dropRows = ROWS - r;
+                    const dropHeight = dropRows * 60;
+                    slot.style.setProperty('--drop-y', `-${dropHeight}px`);
+                    slot.className = `slot blocker-slot dropping`;
+                    slot.addEventListener('animationend', () => slot.classList.remove('dropping'), { once: true });
+                }
+            }
+            else if (action.type === 'earthquake') {
+                for (let c = 0; c < COLS; c++) {
+                    boardState[c].splice(0, 1);
+                    boardState[c].push(null);
+                }
+                teamPowers[currentPlayer].earthquake--;
+            }
+
+            drawBoard();
+
+            // Check if current player has won anywhere
+            if (checkBoardForWin(currentPlayer)) {
+                setTimeout(() => showWin(currentPlayer), 350);
+                return;
+            }
+
+            cancelPower();
+            advanceRosterIndex(currentPlayer);
+            rotateTurn();
+            return;
+        }
+
+        // Normal turn logic
+        const r = boardState[activeCol].indexOf(null);
+        boardState[activeCol][r] = currentPlayer;
+        
+        const slot = document.getElementById(`slot-${activeCol}-${r}`);
+        const dropRows = ROWS - r;
+        const dropHeight = dropRows * 60;
+        slot.style.setProperty('--drop-y', `-${dropHeight}px`);
+        slot.className = `slot p${currentPlayer} dropping`;
+        slot.addEventListener('animationend', () => slot.classList.remove('dropping'), { once: true });
+        
+        updateColumnNumbers();
+
+        if (checkWin(activeCol, r)) {
+            setTimeout(() => showWin(currentPlayer), 350);
+            return;
+        }
+
+        advanceRosterIndex(currentPlayer);
+        rotateTurn();
+    }
+
+    function rotateTurn() {
+        currentPlayer = currentPlayer === 6 ? 1 : currentPlayer + 1;
+        cancelPower();
+        updateStatusDisplay();
+    }
+
+    function updateStatusDisplay() {
+        const s = document.getElementById('status');
+        const teamColors = { 1: 'Red', 2: 'Blue', 3: 'Green', 4: 'Yellow', 5: 'Orange', 6: 'Purple' };
+        const studentName = getActivePlayerName(currentPlayer);
+        const nameDisplay = studentName ? `: ${studentName}` : '';
+        
+        s.innerText = `Team ${teamColors[currentPlayer]}'s Turn${nameDisplay}!`;
+        s.className = `status-bar p${currentPlayer}-turn`;
+
+        for (let i = 1; i <= 6; i++) {
+            const card = document.getElementById(`card-team-${i}`);
+            card.classList.toggle('active-turn', i === currentPlayer);
+            renderStudentList(i);
+        }
+        renderPowers();
+    }
+
+    // ─── WIN CHECK LOGIC ─────────────────────────────────────────────────────
+    function checkWin(c, r) {
+        const p = boardState[c][r];
+        if (p === 'blocker') return false;
+        const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+        for (let [dc, dr] of dirs) {
+            let count = 1;
+            for (let i = 1; i < 4; i++) { if (boardState[c+dc*i]?.[r+dr*i] === p) count++; else break; }
+            for (let i = 1; i < 4; i++) { if (boardState[c-dc*i]?.[r-dr*i] === p) count++; else break; }
+            if (count >= 4) return true;
+        }
+        return false;
+    }
+
+    function checkBoardForWin(p) {
+        if (p === 'blocker') return false;
+        const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+        for (let c = 0; c < COLS; c++) {
+            for (let r = 0; r < ROWS; r++) {
+                if (boardState[c][r] !== p) continue;
+                for (let [dc, dr] of dirs) {
+                    let count = 1;
+                    for (let i = 1; i < 4; i++) {
+                        if (boardState[c+dc*i]?.[r+dr*i] === p) count++;
+                        else break;
+                    }
+                    if (count >= 4) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    function showWin(player) {
+        const teamColorsEn = { 1: 'Team Red', 2: 'Team Blue', 3: 'Team Green', 4: 'Team Yellow', 5: 'Team Orange', 6: 'Team Purple' };
+        const teamColorsVi = { 1: 'Nhóm Đỏ', 2: 'Nhóm Xanh Dương', 3: 'Nhóm Xanh Lá', 4: 'Nhóm Vàng', 5: 'Nhóm Cam', 6: 'Nhóm Tím' };
+        const colorHex = { 1: '#ff4757', 2: '#2e86de', 3: '#2ed573', 4: '#ffa502', 5: '#ff9f43', 6: '#a55eed' };
+
+        const title = document.getElementById('win-title');
+        title.innerText = `🎉 ${teamColorsEn[player]} Wins! / ${teamColorsVi[player]} Thắng!`;
+        title.style.color = colorHex[player];
+        
+        document.getElementById('win-overlay').style.display = 'flex';
+    }
+
+    // ─── INSTRUCTION TRANSLATIONS ───────────────────────────────────────────
+    const htpTranslations = {
+        en: {
+            title: '📖 How to Play',
+            step1: 'Pick a column (1–9)',
+            step2: 'Answer the ESL question',
+            step3: 'Teacher scores correct',
+            step4: 'Connect 4 in a row to win!'
+        },
+        vi: {
+            title: '📖 Hướng dẫn chơi',
+            step1: 'Chọn một cột (1–9)',
+            step2: 'Trả lời câu hỏi Tiếng Anh',
+            step3: 'Giáo viên chấm điểm đúng',
+            step4: 'Nối thẳng hàng 4 quân để thắng!'
+        }
+    };
+
+    function setInstructionsLang(lang) {
+        currentInstructionsLang = lang;
+        document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+        document.getElementById('lang-vi').classList.toggle('active', lang === 'vi');
+
+        const trans = htpTranslations[lang];
+        document.getElementById('htp-title').innerText = trans.title;
+        document.getElementById('htp-step-1').innerText = trans.step1;
+        document.getElementById('htp-step-2').innerText = trans.step2;
+        document.getElementById('htp-step-3').innerText = trans.step3;
+        document.getElementById('htp-step-4').innerText = trans.step4;
+
+        // Change team labels in the card layouts
+        const nameElements = document.querySelectorAll('.t-name');
+        nameElements.forEach(el => {
+            el.innerText = el.getAttribute(`data-${lang}`);
+        });
+    }
+
+    // Initialize Game
+    initBoard();
+    updateStatusDisplay();
+</script>
+</body>
+</html>

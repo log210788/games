@@ -1,0 +1,1763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect 4 – Conversation Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --p1: #FF6B35;
+            --p2: #0097A7;
+            --board: #1A237E;
+            --bg: #FFF8F0;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: linear-gradient(160deg, #FFE0B2 0%, #FFF8F0 50%, #E0F7FA 100%);
+            margin: 0;
+            padding: 20px 10px 40px;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-family: 'Fredoka One', cursive;
+            font-size: 2rem;
+            color: #1A237E;
+            margin: 0 0 2px;
+            letter-spacing: 1px;
+            text-shadow: 2px 2px 0 rgba(255,255,255,0.8);
+        }
+
+        .subtitle {
+            font-size: 0.95rem;
+            color: #546E7A;
+            font-weight: 700;
+            margin-bottom: 14px;
+            letter-spacing: 0.5px;
+        }
+
+        .status-bar {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.6rem;
+            padding: 10px 36px;
+            border-radius: 50px;
+            margin-bottom: 18px;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+            transition: all 0.3s;
+        }
+        .p1-turn { color: var(--p1); border: 4px solid var(--p1); }
+        .p2-turn { color: var(--p2); border: 4px solid var(--p2); }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background: var(--board);
+            padding: 12px;
+            border-radius: 20px;
+            gap: 8px;
+            box-shadow: 0 10px 0 #0d1560, 0 12px 30px rgba(0,0,0,0.25);
+            overflow: hidden;
+        }
+
+        .board-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .column-numbers {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            padding: 0 12px;
+            margin-bottom: 6px;
+            width: 100%;
+        }
+
+        .col-num {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.6rem;
+            color: #1A237E;
+            text-align: center;
+            background: white;
+            border-radius: 12px;
+            padding: 4px 0;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+            line-height: 1.2;
+            transition: transform 0.15s, background 0.15s;
+            cursor: pointer;
+            user-select: none;
+        }
+        .col-num:hover { background: #FFF3E0; transform: translateY(-3px); }
+        .col-num.full { color: #ccc; background: #f0f0f0; cursor: not-allowed; transform: none; }
+
+        .column {
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 8px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 12px;
+            transition: background 0.2s;
+        }
+        .column:hover { background: rgba(255,255,255,0.12); }
+
+        .slot {
+            width: 66px;
+            height: 66px;
+            border-radius: 50%;
+            background: #B3E5FC;
+            border: 3px solid rgba(0,0,0,0.1);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.2);
+        }
+        .slot.p1 { background: var(--p1) !important; box-shadow: 0 0 16px rgba(255,107,53,0.75), inset 0 -3px 6px rgba(0,0,0,0.2); }
+        .slot.p2 { background: var(--p2) !important; box-shadow: 0 0 16px rgba(0,151,167,0.75), inset 0 -3px 6px rgba(0,0,0,0.2); }
+
+        /* Theme icons decoration */
+        .theme-icons {
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            margin: 4px 0 14px;
+            flex-wrap: wrap;
+        }
+        .theme-icon {
+            font-size: 2.2rem;
+            opacity: 0.75;
+            transition: transform 0.3s, opacity 0.3s;
+            cursor: default;
+        }
+        .theme-icon:hover { transform: scale(1.3) rotate(12deg); opacity: 1; }
+
+        /* Mode bar */
+        .mode-bar {
+            display: flex;
+            gap: 0;
+            margin-bottom: 16px;
+            border-radius: 50px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+            border: 3px solid var(--board);
+        }
+        .mode-btn {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.1rem;
+            padding: 10px 28px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.25s;
+            background: white;
+            color: #888;
+        }
+        .mode-btn:hover { background: #FFF3E0; }
+        .mode-btn.active { background: var(--board); color: white; }
+
+        /* Overlay */
+        #overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10,10,40,0.9);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        #q-card {
+            background: white;
+            padding: 32px 40px 28px;
+            border-radius: 28px;
+            max-width: 520px;
+            width: 100%;
+            text-align: center;
+            border: 6px solid var(--board);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+            animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.7); opacity: 0; }
+            to   { transform: scale(1);   opacity: 1; }
+        }
+
+        .player-badge {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1rem;
+            padding: 5px 18px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 14px;
+            color: white;
+        }
+        .badge-p1 { background: var(--p1); }
+        .badge-p2 { background: var(--p2); }
+
+        .category-badge {
+            font-size: 0.82rem;
+            font-weight: 800;
+            padding: 3px 14px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .cat-hobbies   { background: #FCE4EC; color: #AD1457; }
+        .cat-interests { background: #EDE7F6; color: #6A1B9A; }
+        .cat-travel    { background: #E0F7FA; color: #00695C; }
+
+        /* Large emoji display */
+        .emoji-display {
+            font-size: 68px;
+            width: 128px;
+            height: 128px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.28);
+            animation: bounce 2s infinite;
+            border: 4px solid rgba(255,255,255,0.45);
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        #q-text {
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.55rem;
+            font-weight: 800;
+            color: #1A237E;
+            margin-bottom: 16px;
+            line-height: 1.45;
+        }
+
+        .share-hint {
+            font-size: 0.92rem;
+            color: #78909C;
+            background: #F5F5F5;
+            border-radius: 10px;
+            padding: 7px 16px;
+            margin-bottom: 20px;
+            font-weight: 700;
+            font-style: italic;
+        }
+
+        .judge-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+        .btn {
+            padding: 14px 28px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            font-weight: 800;
+            font-family: 'Nunito', sans-serif;
+            transition: transform 0.15s, box-shadow 0.15s;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+        }
+        .btn:hover  { transform: translateY(-2px); box-shadow: 0 6px 0 rgba(0,0,0,0.15); }
+        .btn:active { transform: translateY(2px);  box-shadow: 0 2px 0 rgba(0,0,0,0.15); }
+        .btn-yes { background: #2ecc71; color: white; }
+        .btn-no  { background: #e0e0e0; color: #555; }
+
+        /* Win overlay */
+        #win-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10,10,40,0.93);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        #win-card {
+            background: white;
+            padding: 50px 60px;
+            border-radius: 30px;
+            text-align: center;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 6px solid var(--board);
+        }
+        #win-card h2 { font-family: 'Fredoka One', cursive; font-size: 3rem; margin: 0 0 10px; }
+        #win-card p  { font-size: 1.3rem; color: #555; margin-bottom: 20px; }
+        .win-icons { font-size: 2.4rem; margin-bottom: 20px; letter-spacing: 8px; }
+        .btn-restart { background: var(--board); color: white; padding: 16px 40px; font-size: 1.2rem; }
+
+        /* How to play */
+        .how-to-play {
+            position: fixed;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: white;
+            border-radius: 20px;
+            padding: 18px 16px;
+            width: 170px;
+            box-shadow: 0 6px 28px rgba(0,0,0,0.14);
+            border: 3px solid var(--board);
+            z-index: 100;
+            font-family: 'Nunito', sans-serif;
+        }
+        .htp-title {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1rem;
+            color: var(--board);
+            text-align: center;
+            margin-bottom: 12px;
+            border-bottom: 2px solid var(--board);
+            padding-bottom: 8px;
+        }
+        .htp-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 10px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #2c3e50;
+            line-height: 1.35;
+        }
+        .htp-num {
+            background: var(--board);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Fredoka One', cursive;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+        .htp-mini-board {
+            display: grid;
+            grid-template-columns: repeat(4, 14px);
+            gap: 3px;
+            background: var(--board);
+            padding: 4px;
+            border-radius: 6px;
+            margin: 8px auto 4px;
+            width: fit-content;
+        }
+        .htp-dot { width: 14px; height: 14px; border-radius: 50%; background: rgba(255,255,255,0.25); }
+        .htp-dot.s { background: #FF6B35; }
+        .htp-dot.t { background: #0097A7; }
+        .htp-legend {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 10px;
+            font-size: 0.75rem;
+            font-weight: 800;
+        }
+
+        @keyframes pieceDrop {
+            from { transform: translateY(var(--drop-y)); }
+            to   { transform: translateY(0); }
+        }
+        .slot.dropping {
+            animation: pieceDrop 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        /* Language Toggle in How to Play */
+        .htp-lang-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            margin-bottom: 12px;
+            background: #f1f5f9;
+            padding: 3px;
+            border-radius: 30px;
+            border: 1px solid #e2e8f0;
+        }
+        .lang-btn {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 5px 10px;
+            font-family: 'Fredoka One', cursive;
+            font-size: 0.75rem;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #64748b;
+        }
+        .lang-btn.active {
+            background: var(--board);
+            color: white;
+            box-shadow: 0 2px 6px rgba(26, 35, 126, 0.3);
+        }
+
+        /* Question Translation */
+        #q-translation {
+            font-size: 1.25rem;
+            color: #6b7280;
+            font-weight: 700;
+            margin-bottom: 14px;
+            min-height: 28px;
+            font-style: italic;
+            display: none;
+        }
+        .btn-translate {
+            background: #e0f2fe;
+            color: #0369a1;
+            font-size: 0.85rem;
+            padding: 8px 16px;
+            border-radius: 12px;
+            margin-bottom: 18px;
+            border: 2px solid #bae6fd;
+            font-family: 'Fredoka One', cursive;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-translate:hover {
+            background: #bae6fd;
+            transform: scale(1.05);
+        }
+
+        /* Chips list for keywords */
+        .chips-title {
+            font-size: 0.9rem;
+            font-weight: 800;
+            color: #6b7280;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 22px;
+            min-height: 50px;
+        }
+        .chip {
+            font-family: 'Fredoka One', cursive;
+            font-size: 0.9rem;
+            padding: 6px 14px;
+            border-radius: 20px;
+            background: #f1f5f9;
+            color: #475569;
+            border: 2px solid #cbd5e1;
+            user-select: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.15s;
+        }
+        .chip:hover {
+            transform: scale(1.05);
+            background: #e2e8f0;
+        }
+
+        /* Teams layout */
+        .teams-container {
+            display: flex;
+            gap: 20px;
+            margin-top: 30px;
+            width: 100%;
+            max-width: 540px;
+        }
+        .team-card {
+            flex: 1;
+            background: white;
+            border-radius: 18px;
+            padding: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border: 3px solid #e2e8f0;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .team-card.p1-team {
+            border-color: rgba(255, 107, 53, 0.3);
+        }
+        .team-card.p1-team:hover {
+            border-color: var(--p1);
+            transform: translateY(-2px);
+        }
+        .team-card.p2-team {
+            border-color: rgba(0, 151, 167, 0.3);
+        }
+        .team-card.p2-team:hover {
+            border-color: var(--p2);
+            transform: translateY(-2px);
+        }
+        .team-title {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.1rem;
+            margin: 0 0 12px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .team-card.p1-team .team-title { color: var(--p1); }
+        .team-card.p2-team .team-title { color: var(--p2); }
+
+        .team-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .team-dot.p1-dot { background: var(--p1); }
+        .team-dot.p2-dot { background: var(--p2); }
+
+        .add-player-box {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+        .add-player-box input {
+            flex: 1;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 6px 10px;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+            width: 0;
+            min-width: 50px;
+        }
+        .team-card.p1-team .add-player-box input:focus { border-color: var(--p1); }
+        .team-card.p2-team .add-player-box input:focus { border-color: var(--p2); }
+
+        .add-player-box button {
+            color: white;
+            border: none;
+            border-radius: 10px;
+            width: 34px;
+            height: 34px;
+            font-size: 1.2rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .team-card.p1-team .add-player-box button { background: var(--p1); }
+        .team-card.p2-team .add-player-box button { background: var(--p2); }
+
+        .add-player-box button:hover {
+            transform: scale(1.05);
+        }
+        .add-player-box button:active {
+            transform: scale(0.95);
+        }
+
+        .player-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            min-height: 24px;
+        }
+        .player-chip {
+            font-size: 0.85rem;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s;
+            user-select: none;
+        }
+        .p1-team .player-chip {
+            background: #FFE0B2;
+            color: #E65100;
+            border: 1px solid rgba(255, 107, 53, 0.3);
+        }
+        .p2-team .player-chip {
+            background: #E0F7FA;
+            color: #006064;
+            border: 1px solid rgba(0, 151, 167, 0.3);
+        }
+        .player-chip:hover {
+            transform: scale(1.05);
+        }
+        .player-chip .remove-btn {
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 800;
+            line-height: 1;
+            transition: color 0.15s;
+        }
+        .player-chip .remove-btn:hover {
+            color: #d32f2f;
+        }
+
+        @media (max-width: 560px) {
+            .slot { width: 40px; height: 40px; }
+            .board { gap: 5px; padding: 8px; }
+            #q-text { font-size: 1.25rem; }
+            .theme-icon { font-size: 1.8rem; }
+            .mode-btn { font-size: 0.9rem; padding: 8px 14px; }
+            .how-to-play { display: none; }
+            #win-card { padding: 36px 28px; }
+            .teams-container { flex-direction: column; gap: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<h1 id="page-title">💬 Connect 4 – Conversation Edition</h1>
+<div id="page-subtitle" class="subtitle">✈️ Hobbies · Interests · Travel</div>
+
+<div class="theme-icons">
+    <span class="theme-icon">✈️</span>
+    <span class="theme-icon">🎨</span>
+    <span class="theme-icon">🌍</span>
+    <span class="theme-icon">📸</span>
+    <span class="theme-icon">🎵</span>
+    <span class="theme-icon">🏄</span>
+    <span class="theme-icon">🗺️</span>
+    <span class="theme-icon">🌺</span>
+</div>
+
+<div class="mode-bar">
+    <button class="mode-btn active" id="btn-ice"  onclick="setMode('icebreaker')">🌟 Icebreakers</button>
+    <button class="mode-btn"        id="btn-deep" onclick="setMode('deep')">💬 Deep Talk</button>
+</div>
+
+<div id="status" class="status-bar p1-turn">🌟 Explorer's Turn!</div>
+
+<div class="board-wrapper">
+    <div class="column-numbers" id="col-nums">
+        <div class="col-num" onclick="handleColumnClick(0)">1</div>
+        <div class="col-num" onclick="handleColumnClick(1)">2</div>
+        <div class="col-num" onclick="handleColumnClick(2)">3</div>
+        <div class="col-num" onclick="handleColumnClick(3)">4</div>
+        <div class="col-num" onclick="handleColumnClick(4)">5</div>
+        <div class="col-num" onclick="handleColumnClick(5)">6</div>
+        <div class="col-num" onclick="handleColumnClick(6)">7</div>
+    </div>
+    <div class="board" id="board"></div>
+</div>
+
+<!-- Teams Panel -->
+<div class="teams-container">
+    <div class="team-card p1-team">
+        <h3 class="team-title" id="p1-team-title"><span class="team-dot p1-dot"></span> Explorer Team</h3>
+        <div class="add-player-box">
+            <input type="text" id="p1-input" placeholder="Add player..." onkeydown="if(event.key === 'Enter') addPlayer(1)">
+            <button onclick="addPlayer(1)">+</button>
+        </div>
+        <div class="player-list" id="p1-list"></div>
+    </div>
+    <div class="team-card p2-team">
+        <h3 class="team-title" id="p2-team-title"><span class="team-dot p2-dot"></span> Adventurer Team</h3>
+        <div class="add-player-box">
+            <input type="text" id="p2-input" placeholder="Add player..." onkeydown="if(event.key === 'Enter') addPlayer(2)">
+            <button onclick="addPlayer(2)">+</button>
+        </div>
+        <div class="player-list" id="p2-list"></div>
+    </div>
+</div>
+
+<!-- Question Overlay -->
+<div id="overlay">
+    <div id="q-card">
+        <div id="player-badge" class="player-badge badge-p1">🌟 Explorer's Turn</div>
+        <div class="emoji-display" id="q-emoji">✈️</div>
+        <div id="cat-badge" class="category-badge cat-travel">Travel</div>
+        <div id="q-text">If you could teleport anywhere right now, where would you go?</div>
+        
+        <div id="q-translation"></div>
+        <button id="btn-translate-toggle" class="btn-translate" onclick="toggleCardTranslation()">🇻🇳 Show Translation</button>
+        
+        <div class="chips-title" id="chips-title">Key Words / Từ gợi ý:</div>
+        <div class="chips"></div>
+
+        <div class="share-hint" id="share-hint">🗣️ Share your answer with the group!</div>
+        <div class="judge-btns">
+            <button class="btn btn-no" id="btn-judge-no" onclick="handleJudge(false)">⏩ Pass</button>
+            <button class="btn btn-yes" id="btn-judge-yes" onclick="handleJudge(true)">✅ Shared!</button>
+        </div>
+    </div>
+</div>
+
+<!-- Win Overlay -->
+<div id="win-overlay">
+    <div id="win-card">
+        <h2 id="win-title">🎉 Explorer Wins!</h2>
+        <p id="win-msg">Great conversations — well played!</p>
+        <div class="win-icons" id="win-icons">✈️🌟🎨</div>
+        <button class="btn btn-restart" id="btn-restart" onclick="location.reload()">🔄 Play Again</button>
+    </div>
+</div>
+
+<div class="how-to-play">
+    <div class="htp-lang-toggle">
+        <button class="lang-btn active" id="lang-en" onclick="setLanguage('en')">EN</button>
+        <button class="lang-btn" id="lang-vi" onclick="setLanguage('vi')">VI</button>
+    </div>
+    <div class="htp-title" id="htp-title">📖 How to Play</div>
+    <div class="htp-step"><div class="htp-num">1</div><div id="htp-step-1">Pick a column (1–7)</div></div>
+    <div class="htp-step"><div class="htp-num">2</div><div id="htp-step-2">Read the prompt aloud</div></div>
+    <div class="htp-step"><div class="htp-num">3</div><div id="htp-step-3">Share your answer!</div></div>
+    <div class="htp-step"><div class="htp-num">4</div><div id="htp-step-4">Connect 4 in a row to win!</div></div>
+    <div class="htp-mini-board">
+        <div class="htp-dot"></div><div class="htp-dot"></div><div class="htp-dot s"></div><div class="htp-dot"></div>
+        <div class="htp-dot"></div><div class="htp-dot s"></div><div class="htp-dot t"></div><div class="htp-dot"></div>
+        <div class="htp-dot s"></div><div class="htp-dot t"></div><div class="htp-dot t"></div><div class="htp-dot"></div>
+        <div class="htp-dot s"></div><div class="htp-dot s"></div><div class="htp-dot s"></div><div class="htp-dot s"></div>
+    </div>
+    <div class="htp-legend"><span id="legend-p1" style="color:var(--p1)">🟠 Explorer</span><span id="legend-p2" style="color:var(--p2)">🔵 Adventurer</span></div>
+</div>
+
+<script>
+    const ROWS = 6, COLS = 7;
+    let currentPlayer = 1;
+    let boardState = Array(COLS).fill(null).map(() => Array(ROWS).fill(null));
+    let activeCol = null;
+    let mode = 'icebreaker';
+    let currentLang = 'en';
+    let cardTranslationVisible = false;
+    let currentQuestion = null;
+    let teams = { 1: [], 2: [] };
+    let teamIndices = { 1: 0, 2: 0 };
+
+    // ─── TRANSLATIONS ────────────────────────────────────────────────────────
+    const translations = {
+        en: {
+            pageTitle: '💬 Connect 4 – Conversation Edition',
+            pageSubtitle: '✈️ Hobbies · Interests · Travel',
+            btnIce: '🌟 Icebreakers',
+            btnDeep: '💬 Deep Talk',
+            statusP1: "🌟 Explorer's Turn!",
+            statusP2: "🎯 Adventurer's Turn!",
+            badgeP1: "🌟 Explorer's Turn",
+            badgeP2: "🎯 Adventurer's Turn",
+            shareHint: '🗣️ Share your answer with the group!',
+            btnPass: '⏩ Pass',
+            btnShared: '✅ Shared!',
+            winTitleP1: '🎉 Explorer Wins!',
+            winTitleP2: '🎉 Adventurer Wins!',
+            winMsgP1: 'Amazing conversations — you explored the most! 🌟',
+            winMsgP2: 'What a great game — adventure awaits! 🎯',
+            btnPlayAgain: '🔄 Play Again',
+            htpTitle: '📖 How to Play',
+            htpStep1: 'Pick a column (1–7)',
+            htpStep2: 'Read the prompt aloud',
+            htpStep3: 'Share your answer!',
+            htpStep4: 'Connect 4 in a row to win!',
+            legendP1: '🟠 Explorer',
+            legendP2: '🔵 Adventurer',
+            showTranslation: '🇻🇳 Show Vietnamese',
+            hideTranslation: '🙈 Hide Vietnamese',
+            chipsTitle: 'Key Words / Từ gợi ý:',
+            catTravel: 'Travel',
+            catHobbies: 'Hobbies',
+            catInterests: 'Interests',
+            teamP1: 'Explorer Team',
+            teamP2: 'Adventurer Team'
+        },
+        vi: {
+            pageTitle: '💬 Bốn Nối Tiếp – Bản Trò Chuyện',
+            pageSubtitle: '✈️ Sở thích · Mối quan tâm · Du lịch',
+            btnIce: '🌟 Khởi động',
+            btnDeep: '💬 Trò chuyện sâu',
+            statusP1: "🌟 Lượt của Nhà thám hiểm!",
+            statusP2: "🎯 Lượt của Nhà phiêu lưu!",
+            badgeP1: "🌟 Lượt của Nhà thám hiểm",
+            badgeP2: "🎯 Lượt của Nhà phiêu lưu",
+            shareHint: '🗣️ Chia sẻ câu trả lời của bạn với nhóm!',
+            btnPass: '⏩ Bỏ qua',
+            btnShared: '✅ Đã chia sẻ!',
+            winTitleP1: '🎉 Nhà thám hiểm Thắng cuộc!',
+            winTitleP2: '🎉 Nhà phiêu lưu Thắng cuộc!',
+            winMsgP1: 'Cuộc trò chuyện tuyệt vời — bạn đã khám phá nhiều nhất! 🌟',
+            winMsgP2: 'Trò chơi thật tuyệt vời — cuộc phiêu lưu đang chờ đón! 🎯',
+            btnPlayAgain: '🔄 Chơi lại',
+            htpTitle: '📖 Cách chơi',
+            htpStep1: 'Chọn một cột (1–7)',
+            htpStep2: 'Đọc to câu hỏi',
+            htpStep3: 'Chia sẻ câu trả lời của bạn!',
+            htpStep4: 'Nối thẳng hàng 4 quân để thắng!',
+            legendP1: '🟠 Thám hiểm',
+            legendP2: '🔵 Phiêu lưu',
+            showTranslation: '🇻🇳 Hiện Tiếng Việt',
+            hideTranslation: '🙈 Ẩn Tiếng Việt',
+            chipsTitle: 'Từ gợi ý:',
+            catTravel: 'Du lịch',
+            catHobbies: 'Sở thích',
+            catInterests: 'Quan tâm',
+            teamP1: 'Đội Thám hiểm',
+            teamP2: 'Đội Phiêu lưu'
+        }
+    };
+
+    // ─── CARD DATA ────────────────────────────────────────────────────────────
+    const icebreakers = [
+        {
+            emoji: '✈️',
+            bg: '#0288D1',
+            cat: 'Travel',
+            prompt: "What's the most interesting place you've ever visited?",
+            promptVi: "Địa điểm thú vị nhất mà bạn từng ghé thăm là nơi nào?",
+            keywords: [
+                { en: "visited", vi: "đã ghé thăm" },
+                { en: "scenery", vi: "phong cảnh" },
+                { en: "historical site", vi: "di tích lịch sử" },
+                { en: "culture", vi: "văn hóa" }
+            ]
+        },
+        {
+            emoji: '🎨',
+            bg: '#E91E63',
+            cat: 'Hobbies',
+            prompt: "What hobby do you wish you had more time for?",
+            promptVi: "Sở thích nào bạn ước mình có nhiều thời gian hơn để thực hiện?",
+            keywords: [
+                { en: "wish", vi: "ước" },
+                { en: "more time", vi: "nhiều thời gian hơn" },
+                { en: "practice", vi: "luyện tập" },
+                { en: "busy", vi: "bận rộn" }
+            ]
+        },
+        {
+            emoji: '🍕',
+            bg: '#E65100',
+            cat: 'Interests',
+            prompt: "What's your ultimate comfort food and why?",
+            promptVi: "Món ăn mang lại sự thoải mái nhất cho bạn là gì và tại sao?",
+            keywords: [
+                { en: "comfort food", vi: "món ăn an ủi" },
+                { en: "delicious", vi: "ngon miệng" },
+                { en: "childhood", vi: "tuổi thơ" },
+                { en: "feel happy", vi: "cảm thấy hạnh phúc" }
+            ]
+        },
+        {
+            emoji: '📚',
+            bg: '#4527A0',
+            cat: 'Interests',
+            prompt: "What's a book, movie, or show you'd recommend to anyone right now?",
+            promptVi: "Cuốn sách, bộ phim hoặc chương trình nào bạn muốn giới thiệu cho mọi người ngay bây giờ?",
+            keywords: [
+                { en: "recommend", vi: "giới thiệu" },
+                { en: "plot", vi: "cốt truyện" },
+                { en: "characters", vi: "nhân vật" },
+                { en: "meaningful", vi: "ý nghĩa" }
+            ]
+        },
+        {
+            emoji: '🏖️',
+            bg: '#0277BD',
+            cat: 'Travel',
+            prompt: "Beach, mountains, or city — which is your dream getaway?",
+            promptVi: "Bãi biển, vùng núi hay thành phố — đâu là nơi trốn lý tưởng trong mơ của bạn?",
+            keywords: [
+                { en: "dream getaway", vi: "nơi trốn lý tưởng" },
+                { en: "relax", vi: "thư giãn" },
+                { en: "nature", vi: "thiên nhiên" },
+                { en: "nightlife", vi: "cuộc sống về đêm" }
+            ]
+        },
+        {
+            emoji: '🎵',
+            bg: '#C62828',
+            cat: 'Hobbies',
+            prompt: "What kind of music do you have on repeat right now?",
+            promptVi: "Thể loại nhạc nào bạn đang nghe lặp đi lặp lại nhiều nhất hiện nay?",
+            keywords: [
+                { en: "on repeat", vi: "nghe lặp lại" },
+                { en: "favorite song", vi: "bài hát yêu thích" },
+                { en: "relaxing", vi: "thư giãn" },
+                { en: "energetic", vi: "năng động" }
+            ]
+        },
+        {
+            emoji: '🌮',
+            bg: '#E64A19',
+            cat: 'Travel',
+            prompt: "What's the most delicious food you've tried from another culture?",
+            promptVi: "Món ăn ngon nhất bạn từng thử từ một nền văn hóa khác là gì?",
+            keywords: [
+                { en: "culture", vi: "văn hóa" },
+                { en: "delicious", vi: "ngon" },
+                { en: "unique flavor", vi: "hương vị độc đáo" },
+                { en: "spices", vi: "gia vị" }
+            ]
+        },
+        {
+            emoji: '🛋️',
+            bg: '#283593',
+            cat: 'Hobbies',
+            prompt: "How do you like to spend a completely free day off?",
+            promptVi: "Bạn thích dành một ngày nghỉ hoàn toàn tự do như thế nào?",
+            keywords: [
+                { en: "free day", vi: "ngày rảnh rỗi" },
+                { en: "sleep in", vi: "ngủ nướng" },
+                { en: "hang out", vi: "đi chơi" },
+                { en: "do nothing", vi: "không làm gì cả" }
+            ]
+        },
+        {
+            emoji: '🌍',
+            bg: '#00695C',
+            cat: 'Travel',
+            prompt: "If you could teleport anywhere in the world right now, where would you go?",
+            promptVi: "Nếu bạn có thể dịch chuyển tức thời đến bất kỳ nơi nào trên thế giới ngay bây giờ, bạn sẽ đi đâu?",
+            keywords: [
+                { en: "teleport", vi: "dịch chuyển tức thời" },
+                { en: "dream destination", vi: "điểm đến mơ ước" },
+                { en: "explore", vi: "khám phá" },
+                { en: "instantly", vi: "ngay lập tức" }
+            ]
+        },
+        {
+            emoji: '💡',
+            bg: '#F57F17',
+            cat: 'Interests',
+            prompt: "What topic could you talk about for hours?",
+            promptVi: "Chủ đề nào bạn có thể nói chuyện hàng giờ liền không chán?",
+            keywords: [
+                { en: "talk for hours", vi: "nói chuyện hàng giờ" },
+                { en: "passionate", vi: "đam mê" },
+                { en: "share ideas", vi: "chia sẻ ý tưởng" },
+                { en: "interesting", vi: "thú vị" }
+            ]
+        },
+        {
+            emoji: '📸',
+            bg: '#5D4037',
+            cat: 'Hobbies',
+            prompt: "Do you have a creative hobby — art, photography, or writing?",
+            promptVi: "Bạn có sở thích sáng tạo nào không — nghệ thuật, nhiếp ảnh hay viết lách?",
+            keywords: [
+                { en: "creative hobby", vi: "sở thích sáng tạo" },
+                { en: "express myself", vi: "thể hiện bản thân" },
+                { en: "painting", vi: "vẽ tranh" },
+                { en: "photography", vi: "nhiếp ảnh" }
+            ]
+        },
+        {
+            emoji: '🌺',
+            bg: '#AD1457',
+            cat: 'Travel',
+            prompt: "What's one travel experience you'll never forget?",
+            promptVi: "Trải nghiệm du lịch nào mà bạn sẽ không bao giờ quên?",
+            keywords: [
+                { en: "never forget", vi: "không bao giờ quên" },
+                { en: "memorable", vi: "đáng nhớ" },
+                { en: "adventure", vi: "phiêu lưu" },
+                { en: "locals", vi: "người địa phương" }
+            ]
+        },
+        {
+            emoji: '🎯',
+            bg: '#1B5E20',
+            cat: 'Interests',
+            prompt: "What's something on your bucket list you haven't done yet?",
+            promptVi: "Điều gì nằm trong danh sách những việc phải làm trước khi chết mà bạn chưa thực hiện?",
+            keywords: [
+                { en: "bucket list", vi: "danh sách mong muốn" },
+                { en: "haven't done yet", vi: "chưa thực hiện" },
+                { en: "goal", vi: "mục tiêu" },
+                { en: "experience", vi: "trải nghiệm" }
+            ]
+        },
+        {
+            emoji: '🍳',
+            bg: '#BF360C',
+            cat: 'Hobbies',
+            prompt: "Do you enjoy cooking? What's your go-to dish to impress people?",
+            promptVi: "Bạn có thích nấu ăn không? Món tủ của bạn để gây ấn tượng với mọi người là gì?",
+            keywords: [
+                { en: "cooking", vi: "nấu ăn" },
+                { en: "go-to dish", vi: "món tủ" },
+                { en: "impress", vi: "gây ấn tượng" },
+                { en: "recipe", vi: "công thức" }
+            ]
+        },
+        {
+            emoji: '🏔️',
+            bg: '#37474F',
+            cat: 'Travel',
+            prompt: "Would you rather explore a jungle, a snowy mountain, or an ancient city?",
+            promptVi: "Bạn muốn khám phá một khu rừng rậm, một ngọn núi tuyết hay một thành phố cổ kính hơn?",
+            keywords: [
+                { en: "explore", vi: "khám phá" },
+                { en: "jungle", vi: "rừng rậm" },
+                { en: "snowy mountain", vi: "núi tuyết" },
+                { en: "ancient city", vi: "thành phố cổ kính" }
+            ]
+        },
+        {
+            emoji: '🎭',
+            bg: '#6A1B9A',
+            cat: 'Interests',
+            prompt: "What's a talent or skill you're quietly proud of?",
+            promptVi: "Tài năng hoặc kỹ năng nào bạn thầm tự hào về bản thân?",
+            keywords: [
+                { en: "talent", vi: "tài năng" },
+                { en: "quietly proud", vi: "thầm tự hào" },
+                { en: "good at", vi: "giỏi về" },
+                { en: "self-taught", vi: "tự học" }
+            ]
+        },
+        {
+            emoji: '🌙',
+            bg: '#1A237E',
+            cat: 'Hobbies',
+            prompt: "Are you a morning person or a night owl — and what do you do in that time?",
+            promptVi: "Bạn là người thích buổi sáng hay cú đêm — và bạn thường làm gì vào khoảng thời gian đó?",
+            keywords: [
+                { en: "morning person", vi: "người của buổi sáng" },
+                { en: "night owl", vi: "cú đêm" },
+                { en: "productive", vi: "năng suất" },
+                { en: "stay up late", vi: "thức khuya" }
+            ]
+        },
+        {
+            emoji: '🗺️',
+            bg: '#00838F',
+            cat: 'Travel',
+            prompt: "What country are you most curious to explore and why?",
+            promptVi: "Quốc gia nào bạn tò mò muốn khám phá nhất và tại sao?",
+            keywords: [
+                { en: "curious", vi: "tò mò" },
+                { en: "explore", vi: "khám phá" },
+                { en: "culture", vi: "văn hóa" },
+                { en: "history", vi: "lịch sử" }
+            ]
+        },
+        {
+            emoji: '🎪',
+            bg: '#B71C1C',
+            cat: 'Interests',
+            prompt: "What's something unusual or unexpected that you really enjoy?",
+            promptVi: "Điều gì bất thường hoặc bất ngờ mà bạn thực sự yêu thích?",
+            keywords: [
+                { en: "unusual", vi: "bất thường" },
+                { en: "unexpected", vi: "bất ngờ" },
+                { en: "really enjoy", vi: "thực sự yêu thích" },
+                { en: "weird habit", vi: "thói quen kỳ lạ" }
+            ]
+        },
+        {
+            emoji: '🌱',
+            bg: '#2E7D32',
+            cat: 'Hobbies',
+            prompt: "Have you picked up any new hobbies recently? What got you into it?",
+            promptVi: "Gần đây bạn có bắt đầu sở thích mới nào không? Điều gì đã dẫn dắt bạn đến với nó?",
+            keywords: [
+                { en: "new hobbies", vi: "sở thích mới" },
+                { en: "picked up", vi: "bắt đầu" },
+                { en: "got into it", vi: "đam mê nó" },
+                { en: "recently", vi: "gần đây" }
+            ]
+        },
+        {
+            emoji: '🧗',
+            bg: '#4E342E',
+            cat: 'Travel',
+            prompt: "What's the most adventurous thing you've ever done?",
+            promptVi: "Điều phiêu lưu mạo hiểm nhất bạn từng làm là gì?",
+            keywords: [
+                { en: "adventurous", vi: "mạo hiểm" },
+                { en: "ever done", vi: "từng làm" },
+                { en: "exciting", vi: "thú vị" },
+                { en: "challenge", vi: "thử thách" }
+            ]
+        },
+        {
+            emoji: '🎲',
+            bg: '#0097A7',
+            cat: 'Hobbies',
+            prompt: "Do you have a favourite game — board game, video game, or sport?",
+            promptVi: "Bạn có trò chơi yêu thích nào không — cờ bàn, trò chơi điện tử hay thể thao?",
+            keywords: [
+                { en: "favourite game", vi: "trò chơi yêu thích" },
+                { en: "board game", vi: "cờ bàn" },
+                { en: "video game", vi: "trò chơi điện tử" },
+                { en: "play with friends", vi: "chơi cùng bạn bè" }
+            ]
+        }
+    ];
+
+    const deepTalk = [
+        {
+            emoji: '🌏',
+            bg: '#00695C',
+            cat: 'Travel',
+            prompt: "Has traveling ever completely changed your perspective on something?",
+            promptVi: "Có chuyến đi nào đã thay đổi hoàn toàn góc nhìn của bạn về một điều gì đó chưa?",
+            keywords: [
+                { en: "changed perspective", vi: "thay đổi góc nhìn" },
+                { en: "open-minded", vi: "cởi mở" },
+                { en: "culture shock", vi: "sốc văn hóa" },
+                { en: "life experience", vi: "trải nghiệm sống" }
+            ]
+        },
+        {
+            emoji: '🎨',
+            bg: '#AD1457',
+            cat: 'Hobbies',
+            prompt: "When did you last do something purely for the joy of it, with no goal in mind?",
+            promptVi: "Lần cuối cùng bạn làm điều gì đó chỉ đơn thuần vì niềm vui, không có mục tiêu nào là khi nào?",
+            keywords: [
+                { en: "purely for joy", vi: "chỉ vì niềm vui" },
+                { en: "no goal", vi: "không mục tiêu" },
+                { en: "relax", vi: "thư giãn" },
+                { en: "feel free", vi: "cảm thấy tự do" }
+            ]
+        },
+        {
+            emoji: '🔑',
+            bg: '#4527A0',
+            cat: 'Interests',
+            prompt: "What's a skill or subject you wish you'd started learning earlier in life?",
+            promptVi: "Kỹ năng hoặc môn học nào bạn ước mình đã bắt đầu học sớm hơn trong cuộc đời?",
+            keywords: [
+                { en: "wish", vi: "ước" },
+                { en: "started earlier", vi: "bắt đầu sớm hơn" },
+                { en: "useful skill", vi: "kỹ năng hữu ích" },
+                { en: "regret", vi: "tiếc nuối" }
+            ]
+        },
+        {
+            emoji: '🌱',
+            bg: '#2E7D32',
+            cat: 'Interests',
+            prompt: "What's something you've been slowly getting better at lately, and how does it feel?",
+            promptVi: "Điều gì bạn đang dần tiến bộ hơn dạo gần đây, và cảm giác đó thế nào?",
+            keywords: [
+                { en: "getting better", vi: "tiến bộ hơn" },
+                { en: "lately", vi: "gần đây" },
+                { en: "progress", vi: "tiến triển" },
+                { en: "improve", vi: "cải thiện" }
+            ]
+        },
+        {
+            emoji: '🧳',
+            bg: '#0277BD',
+            cat: 'Travel',
+            prompt: "Describe your ideal travel experience — who are you with, and where are you going?",
+            promptVi: "Mô tả trải nghiệm du lịch lý tưởng của bạn — bạn đi cùng ai và sẽ đi đâu?",
+            keywords: [
+                { en: "ideal travel", vi: "du lịch lý tưởng" },
+                { en: "companion", vi: "bạn đồng hành" },
+                { en: "destination", vi: "điểm đến" },
+                { en: "perfect trip", vi: "chuyến đi hoàn hảo" }
+            ]
+        },
+        {
+            emoji: '💫',
+            bg: '#F57F17',
+            cat: 'Interests',
+            prompt: "Who or what has had the biggest influence on your passions and interests?",
+            promptVi: "Ai hoặc điều gì đã có ảnh hưởng lớn nhất đến đam mê và sở thích của bạn?",
+            keywords: [
+                { en: "influence", vi: "ảnh hưởng" },
+                { en: "passions", vi: "đam mê" },
+                { en: "role model", vi: "hình mẫu" },
+                { en: "inspiration", vi: "nguồn cảm hứng" }
+            ]
+        },
+        {
+            emoji: '📖',
+            bg: '#4A148C',
+            cat: 'Interests',
+            prompt: "What's the most interesting or surprising thing you've learned in the past year?",
+            promptVi: "Điều thú vị hoặc ngạc nhiên nhất mà bạn đã học được trong năm qua là gì?",
+            keywords: [
+                { en: "surprising", vi: "ngạc nhiên" },
+                { en: "learned", vi: "đã học" },
+                { en: "past year", vi: "năm qua" },
+                { en: "new discovery", vi: "phát hiện mới" }
+            ]
+        },
+        {
+            emoji: '🏡',
+            bg: '#4E342E',
+            cat: 'Hobbies',
+            prompt: "What hobby or activity makes you feel most like yourself?",
+            promptVi: "Sở thích hoặc hoạt động nào khiến bạn cảm thấy giống chính mình nhất?",
+            keywords: [
+                { en: "feel like yourself", vi: "cảm thấy là chính mình" },
+                { en: "true self", vi: "bản thân thật" },
+                { en: "relax", vi: "thư giãn" },
+                { en: "comfortable", vi: "thoải mái" }
+            ]
+        },
+        {
+            emoji: '🌅',
+            bg: '#E64A19',
+            cat: 'Travel',
+            prompt: "What's a place that completely surprised you — totally different from what you expected?",
+            promptVi: "Nơi nào đã làm bạn hoàn toàn ngạc nhiên — khác biệt hoàn toàn so với những gì bạn mong đợi?",
+            keywords: [
+                { en: "surprised", vi: "ngạc nhiên" },
+                { en: "different", vi: "khác biệt" },
+                { en: "expected", vi: "mong đợi" },
+                { en: "hidden gem", vi: "viên ngọc ẩn" }
+            ]
+        },
+        {
+            emoji: '🤝',
+            bg: '#1565C0',
+            cat: 'Travel',
+            prompt: "Have you ever connected with a local or stranger while traveling? What happened?",
+            promptVi: "Bạn đã bao giờ kết nối với một người địa phương hoặc người lạ khi đi du lịch chưa? Chuyện gì đã xảy ra?",
+            keywords: [
+                { en: "connected", vi: "kết nối" },
+                { en: "local", vi: "người địa phương" },
+                { en: "stranger", vi: "người lạ" },
+                { en: "conversation", vi: "cuộc trò chuyện" }
+            ]
+        },
+        {
+            emoji: '🔮',
+            bg: '#6A1B9A',
+            cat: 'Interests',
+            prompt: "If you could spend a whole year mastering any one skill, what would it be and why?",
+            promptVi: "Nếu bạn có thể dành cả năm để thành thạo bất kỳ một kỹ năng nào, đó sẽ là gì và tại sao?",
+            keywords: [
+                { en: "whole year", vi: "cả năm" },
+                { en: "mastering", vi: "thành thạo" },
+                { en: "skill", vi: "kỹ năng" },
+                { en: "instrument", vi: "nhạc cụ" }
+            ]
+        },
+        {
+            emoji: '🌊',
+            bg: '#0288D1',
+            cat: 'Travel',
+            prompt: "How do you feel in nature versus in a city — which one recharges you more?",
+            promptVi: "Bạn cảm thấy thế nào khi ở giữa thiên nhiên so với ở thành phố — nơi nào giúp bạn nạp lại năng lượng nhiều hơn?",
+            keywords: [
+                { en: "nature", vi: "thiên nhiên" },
+                { en: "recharges", vi: "nạp lại năng lượng" },
+                { en: "peaceful", vi: "yên bình" },
+                { en: "fresh air", vi: "không khí trong lành" }
+            ]
+        },
+        {
+            emoji: '🎵',
+            bg: '#880E4F',
+            cat: 'Hobbies',
+            prompt: "Is there a song, film, or book that genuinely shaped who you are today?",
+            promptVi: "Có bài hát, bộ phim hay cuốn sách nào thực sự định hình nên con người bạn ngày hôm nay không?",
+            keywords: [
+                { en: "shaped who you are", vi: "định hình con người bạn" },
+                { en: "genuinely", vi: "thực sự" },
+                { en: "influence", vi: "ảnh hưởng" },
+                { en: "values", vi: "giá trị" }
+            ]
+        },
+        {
+            emoji: '🕊️',
+            bg: '#37474F',
+            cat: 'Interests',
+            prompt: "What's something you cared a lot about years ago that's changed for you now?",
+            promptVi: "Điều gì bạn từng rất bận tâm nhiều năm trước nhưng bây giờ đã thay đổi đối với bạn?",
+            keywords: [
+                { en: "cared a lot", vi: "rất bận tâm" },
+                { en: "changed", vi: "thay đổi" },
+                { en: "growth", vi: "sự trưởng thành" },
+                { en: "perspective", vi: "góc nhìn" }
+            ]
+        },
+        {
+            emoji: '🌍',
+            bg: '#00838F',
+            cat: 'Travel',
+            prompt: "If you could live in another country for one year, which would you choose and why?",
+            promptVi: "Nếu bạn có thể sống ở một quốc gia khác trong một năm, bạn sẽ chọn nước nào và tại sao?",
+            keywords: [
+                { en: "live abroad", vi: "sống ở nước ngoài" },
+                { en: "choose", vi: "lựa chọn" },
+                { en: "culture", vi: "văn hóa" },
+                { en: "lifestyle", vi: "lối sống" }
+            ]
+        },
+        {
+            emoji: '✨',
+            bg: '#F9A825',
+            cat: 'Interests',
+            prompt: "What does a truly perfect, fulfilling day look like for you from start to finish?",
+            promptVi: "Một ngày thực sự hoàn hảo, trọn vẹn đối với bạn trông như thế nào từ đầu đến cuối?",
+            keywords: [
+                { en: "perfect day", vi: "ngày hoàn hảo" },
+                { en: "fulfilling", vi: "trọn vẹn" },
+                { en: "routine", vi: "thói quen" },
+                { en: "happiness", vi: "hạnh phúc" }
+            ]
+        },
+        {
+            emoji: '📷',
+            bg: '#5D4037',
+            cat: 'Hobbies',
+            prompt: "How do you switch off from work or stress and recharge creatively?",
+            promptVi: "Làm thế làm để bạn ngắt kết nối với công việc hoặc sự căng thẳng và nạp lại năng lượng sáng tạo?",
+            keywords: [
+                { en: "switch off", vi: "ngắt kết nối" },
+                { en: "stress", vi: "căng thẳng" },
+                { en: "recharge creatively", vi: "nạp năng lượng sáng tạo" },
+                { en: "disconnect", vi: "ngắt kết nối" }
+            ]
+        },
+        {
+            emoji: '🏕️',
+            bg: '#33691E',
+            cat: 'Travel',
+            prompt: "Tell us about a travel experience that pushed you out of your comfort zone.",
+            promptVi: "Hãy kể về một trải nghiệm du lịch đã đẩy bạn ra khỏi vùng an toàn của mình.",
+            keywords: [
+                { en: "pushed out", vi: "đẩy ra ngoài" },
+                { en: "comfort zone", vi: "vùng an toàn" },
+                { en: "challenge", vi: "thử thách" },
+                { en: "foreign land", vi: "đất nước xa lạ" }
+            ]
+        },
+        {
+            emoji: '💎',
+            bg: '#B71C1C',
+            cat: 'Interests',
+            prompt: "What's an opinion or belief you hold that most people around you don't share?",
+            promptVi: "Quan điểm hoặc niềm tin nào bạn nắm giữ mà hầu hết những người xung quanh không đồng ý với bạn?",
+            keywords: [
+                { en: "opinion", vi: "quan điểm" },
+                { en: "belief", vi: "niềm tin" },
+                { en: "disagree", vi: "không đồng ý" },
+                { en: "perspective", vi: "góc nhìn" }
+            ]
+        },
+        {
+            emoji: '🌸',
+            bg: '#C2185B',
+            cat: 'Hobbies',
+            prompt: "How have your hobbies and interests evolved over the last five years?",
+            promptVi: "Sở thích và mối quan tâm của bạn đã phát triển như thế nào trong năm năm qua?",
+            keywords: [
+                { en: "hobbies evolved", vi: "sở thích phát triển" },
+                { en: "five years", vi: "năm năm" },
+                { en: "changed", vi: "thay đổi" },
+                { en: "new interests", vi: "sở thích mới" }
+            ]
+        },
+        {
+            emoji: '🗼',
+            bg: '#1A237E',
+            cat: 'Travel',
+            prompt: "What's one destination that exceeded all your expectations, and what made it special?",
+            promptVi: "Điểm đến nào đã vượt quá tất cả kỳ vọng của bạn, và điều gì đã khiến nó trở nên đặc biệt?",
+            keywords: [
+                { en: "destination", vi: "điểm đến" },
+                { en: "exceeded expectations", vi: "vượt quá kỳ vọng" },
+                { en: "special", vi: "đặc biệt" },
+                { en: "surprise", vi: "bất ngờ" }
+            ]
+        },
+        {
+            emoji: '🎯',
+            bg: '#E65100',
+            cat: 'Interests',
+            prompt: "What's a big personal goal you're currently working towards, and what's driving you?",
+            promptVi: "Mục tiêu cá nhân lớn nào bạn đang hướng tới hiện tại, và điều gì đang thúc đẩy bạn?",
+            keywords: [
+                { en: "personal goal", vi: "mục tiêu cá nhân" },
+                { en: "working towards", vi: "đang hướng tới" },
+                { en: "motivation", vi: "động lực" },
+                { en: "achieve", vi: "đạt được" }
+            ]
+        }
+    ];
+
+    let deck = [];
+    function getNextCard() {
+        const pool = mode === 'icebreaker' ? icebreakers : deepTalk;
+        if (deck.length === 0) deck = pool.map((_, i) => i).sort(() => Math.random() - 0.5);
+        return pool[deck.pop()];
+    }
+
+    // ─── MODE ─────────────────────────────────────────────────────────────────
+    function setMode(m) {
+        mode = m;
+        deck = []; // Reset deck when mode changes
+        document.getElementById('btn-ice').classList.toggle('active',  m === 'icebreaker');
+        document.getElementById('btn-deep').classList.toggle('active', m === 'deep');
+    }
+
+    // ─── LANGUAGE TOGGLE ───────────────────────────────────────────────────────
+    function setLanguage(lang) {
+        currentLang = lang;
+        
+        // Update language button active classes
+        document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+        document.getElementById('lang-vi').classList.toggle('active', lang === 'vi');
+        
+        // Page items
+        document.getElementById('page-title').innerText = translations[lang].pageTitle;
+        document.getElementById('page-subtitle').innerText = translations[lang].pageSubtitle;
+        
+        // Mode buttons
+        document.getElementById('btn-ice').innerText = translations[lang].btnIce;
+        document.getElementById('btn-deep').innerText = translations[lang].btnDeep;
+        
+        // Team Panel titles and inputs
+        const p1Title = document.getElementById('p1-team-title');
+        const p2Title = document.getElementById('p2-team-title');
+        if (p1Title) p1Title.innerHTML = `<span class="team-dot p1-dot"></span> ` + translations[lang].teamP1;
+        if (p2Title) p2Title.innerHTML = `<span class="team-dot p2-dot"></span> ` + translations[lang].teamP2;
+        if (typeof renderTeams === 'function') {
+            renderTeams();
+        } else {
+            updateStatus();
+        }
+        
+        // How to Play card
+        document.getElementById('htp-title').innerText = translations[lang].htpTitle;
+        document.getElementById('htp-step-1').innerText = translations[lang].htpStep1;
+        document.getElementById('htp-step-2').innerText = translations[lang].htpStep2;
+        document.getElementById('htp-step-3').innerText = translations[lang].htpStep3;
+        document.getElementById('htp-step-4').innerText = translations[lang].htpStep4;
+        document.getElementById('legend-p1').innerText = translations[lang].legendP1;
+        document.getElementById('legend-p2').innerText = translations[lang].legendP2;
+        
+        // Overlay translations if currently open
+        const overlay = document.getElementById('overlay');
+        if (overlay && overlay.style.display === 'flex') {
+            if (currentQuestion) {
+                displayQuestion(currentQuestion);
+            }
+        }
+        
+        // Win card translations if open
+        const winOverlay = document.getElementById('win-overlay');
+        if (winOverlay && winOverlay.style.display === 'flex') {
+            showWin(currentPlayer);
+        }
+    }
+
+    // ─── AUDIO ────────────────────────────────────────────────────────────────
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSound(type) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        if (type === 'shared') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(523, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(659, audioCtx.currentTime + 0.12);
+            osc.frequency.setValueAtTime(784, audioCtx.currentTime + 0.24);
+        } else {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+        }
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+    }
+
+    // ─── BOARD INIT ───────────────────────────────────────────────────────────
+    function init() {
+        const board = document.getElementById('board');
+        for (let c = 0; c < COLS; c++) {
+            const colDiv = document.createElement('div');
+            colDiv.className = 'column';
+            colDiv.onclick = () => handleColumnClick(c);
+            for (let r = 0; r < ROWS; r++) {
+                const slot = document.createElement('div');
+                slot.className = 'slot';
+                slot.id = `slot-${c}-${r}`;
+                colDiv.appendChild(slot);
+            }
+            board.appendChild(colDiv);
+        }
+    }
+
+    function updateColumnNumbers() {
+        document.querySelectorAll('.col-num').forEach((el, c) => {
+            el.classList.toggle('full', boardState[c].indexOf(null) === -1);
+        });
+    }
+
+    function handleColumnClick(c) {
+        if (boardState[c].indexOf(null) === -1) return;
+        activeCol = c;
+        currentQuestion = getNextCard();
+        cardTranslationVisible = false;
+
+        const emojiEl = document.getElementById('q-emoji');
+        emojiEl.textContent = currentQuestion.emoji;
+        emojiEl.style.background = currentQuestion.bg;
+
+        const catBadge = document.getElementById('cat-badge');
+        catBadge.className = 'category-badge cat-' + currentQuestion.cat.toLowerCase();
+
+        const badge = document.getElementById('player-badge');
+        badge.className = 'player-badge ' + (currentPlayer === 1 ? 'badge-p1' : 'badge-p2');
+
+        displayQuestion(currentQuestion);
+
+        document.getElementById('overlay').style.display = 'flex';
+    }
+
+    function displayQuestion(card) {
+        const textEl = document.getElementById('q-text');
+        const translationEl = document.getElementById('q-translation');
+        const transBtn = document.getElementById('btn-translate-toggle');
+        const chipsEl = document.querySelector('.chips');
+        const chipsTitleEl = document.getElementById('chips-title');
+        const shareHintEl = document.getElementById('share-hint');
+        const judgeNoEl = document.getElementById('btn-judge-no');
+        const judgeYesEl = document.getElementById('btn-judge-yes');
+
+        // Question texts
+        if (currentLang === 'en') {
+            textEl.innerText = card.prompt;
+            translationEl.innerText = card.promptVi;
+        } else {
+            textEl.innerText = card.promptVi;
+            translationEl.innerText = card.prompt;
+        }
+
+        // Show/hide translation
+        transBtn.innerText = cardTranslationVisible ? translations[currentLang].hideTranslation : translations[currentLang].showTranslation;
+        translationEl.style.display = cardTranslationVisible ? 'block' : 'none';
+
+        // Translate Category Badge
+        const catBadge = document.getElementById('cat-badge');
+        const categoryKey = 'cat' + card.cat; // e.g. catTravel, catHobbies, catInterests
+        catBadge.innerText = translations[currentLang][categoryKey] || card.cat;
+
+        // Player badge
+        const badge = document.getElementById('player-badge');
+        const activeName = getActivePlayerName(currentPlayer);
+        if (currentLang === 'en') {
+            badge.innerText = activeName + "'s Turn";
+        } else {
+            badge.innerText = "Lượt của " + activeName;
+        }
+
+        // Overlay buttons & hint
+        shareHintEl.innerText = translations[currentLang].shareHint;
+        chipsTitleEl.innerText = translations[currentLang].chipsTitle;
+        judgeNoEl.innerText = translations[currentLang].btnPass;
+        judgeYesEl.innerText = translations[currentLang].btnShared;
+
+        // Helper keywords chips
+        chipsEl.innerHTML = '';
+        if (card.keywords && card.keywords.length > 0) {
+            card.keywords.forEach(kw => {
+                const span = document.createElement('span');
+                span.className = 'chip';
+                span.innerText = `${kw.en} (${kw.vi})`;
+                chipsEl.appendChild(span);
+            });
+        }
+    }
+
+    function toggleCardTranslation() {
+        cardTranslationVisible = !cardTranslationVisible;
+        const translationEl = document.getElementById('q-translation');
+        translationEl.style.display = cardTranslationVisible ? 'block' : 'none';
+        
+        const transBtn = document.getElementById('btn-translate-toggle');
+        transBtn.innerText = cardTranslationVisible ? translations[currentLang].hideTranslation : translations[currentLang].showTranslation;
+    }
+
+    function handleJudge(shared) {
+        document.getElementById('overlay').style.display = 'none';
+        if (!shared) {
+            try { playSound('pass'); } catch(e) {}
+            return;
+        }
+        try { playSound('shared'); } catch(e) {}
+        const r = boardState[activeCol].indexOf(null);
+        boardState[activeCol][r] = currentPlayer;
+        const slot = document.getElementById(`slot-${activeCol}-${r}`);
+        const slotH = 74;
+        const dropRows = ROWS - r;
+        slot.style.setProperty('--drop-y', `-${dropRows * slotH}px`);
+        slot.className = `slot ${currentPlayer === 1 ? 'p1' : 'p2'} dropping`;
+        slot.addEventListener('animationend', () => slot.classList.remove('dropping'), { once: true });
+        updateColumnNumbers();
+
+        if (checkWin(activeCol, r)) {
+            setTimeout(() => showWin(currentPlayer), 300);
+            return;
+        }
+
+        if (teams[currentPlayer].length > 0) {
+            teamIndices[currentPlayer] = (teamIndices[currentPlayer] + 1) % teams[currentPlayer].length;
+        }
+
+        currentPlayer = currentPlayer === 1 ? 2 : 1;
+        updateStatus();
+    }
+
+    function updateStatus() {
+        const s = document.getElementById('status');
+        const activeName = getActivePlayerName(currentPlayer);
+        if (currentLang === 'en') {
+            s.innerText = activeName + "'s Turn!";
+        } else {
+            s.innerText = "Lượt của " + activeName + "!";
+        }
+        s.className = `status-bar ${currentPlayer === 1 ? 'p1-turn' : 'p2-turn'}`;
+    }
+
+    function showWin(player) {
+        const title = document.getElementById('win-title');
+        const msg = document.getElementById('win-msg');
+        const activeName = getActivePlayerName(player);
+        if (player === 1) {
+            if (currentLang === 'en') {
+                title.innerText = `🎉 ${activeName} Wins!`;
+                msg.innerText = teams[1].length > 0 ? `Amazing job, ${activeName}! 🌟` : translations[currentLang].winMsgP1;
+            } else {
+                title.innerText = `🎉 ${activeName} Thắng cuộc!`;
+                msg.innerText = teams[1].length > 0 ? `Chúc mừng ${activeName}! 🌟` : translations[currentLang].winMsgP1;
+            }
+            title.style.color = '#FF6B35';
+            document.getElementById('win-icons').innerText = '✈️🌟🎨';
+        } else {
+            if (currentLang === 'en') {
+                title.innerText = `🎉 ${activeName} Wins!`;
+                msg.innerText = teams[2].length > 0 ? `Amazing job, ${activeName}! 🎯` : translations[currentLang].winMsgP2;
+            } else {
+                title.innerText = `🎉 ${activeName} Thắng cuộc!`;
+                msg.innerText = teams[2].length > 0 ? `Chúc mừng ${activeName}! 🎯` : translations[currentLang].winMsgP2;
+            }
+            title.style.color = '#0097A7';
+            document.getElementById('win-icons').innerText = '🌍🎯🗺️';
+        }
+        document.getElementById('btn-restart').innerText = translations[currentLang].btnPlayAgain;
+        document.getElementById('win-overlay').style.display = 'flex';
+    }
+
+    function checkWin(c, r) {
+        const p = boardState[c][r];
+        const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+        for (let [dc, dr] of dirs) {
+            let count = 1;
+            for (let i = 1; i < 4; i++) { if (boardState[c+dc*i]?.[r+dr*i] === p) count++; else break; }
+            for (let i = 1; i < 4; i++) { if (boardState[c-dc*i]?.[r-dr*i] === p) count++; else break; }
+            if (count >= 4) return true;
+        }
+        return false;
+    }
+
+    // ─── TEAM MANAGER ─────────────────────────────────────────────────────────
+    function getActivePlayerName(p) {
+        if (teams[p] && teams[p].length > 0) {
+            if (teamIndices[p] >= teams[p].length) {
+                teamIndices[p] = 0;
+            }
+            return teams[p][teamIndices[p]];
+        }
+        return p === 1 ? (currentLang === 'en' ? "Explorer" : "Nhà thám hiểm") : (currentLang === 'en' ? "Adventurer" : "Nhà phiêu lưu");
+    }
+
+    function loadTeams() {
+        const saved = localStorage.getItem('connect4_teams');
+        if (saved) {
+            try {
+                teams = JSON.parse(saved);
+            } catch (e) {
+                teams = { 1: [], 2: [] };
+            }
+        } else {
+            teams = { 1: [], 2: [] };
+        }
+        teamIndices = { 1: 0, 2: 0 };
+    }
+
+    function saveTeams() {
+        localStorage.setItem('connect4_teams', JSON.stringify(teams));
+    }
+
+    function addPlayer(player) {
+        const input = document.getElementById(`p${player}-input`);
+        const name = input.value.trim();
+        if (!name) return;
+        if (teams[player].includes(name)) {
+            input.value = '';
+            return;
+        }
+        teams[player].push(name);
+        saveTeams();
+        renderTeams();
+        input.value = '';
+    }
+
+    function removePlayer(player, index) {
+        teams[player].splice(index, 1);
+        if (teamIndices[player] >= teams[player].length) {
+            teamIndices[player] = 0;
+        }
+        saveTeams();
+        renderTeams();
+    }
+
+    function renderTeams() {
+        for (let p of [1, 2]) {
+            const listEl = document.getElementById(`p${p}-list`);
+            if (!listEl) continue;
+            listEl.innerHTML = '';
+            teams[p].forEach((name, index) => {
+                const chip = document.createElement('div');
+                chip.className = 'player-chip';
+                chip.innerHTML = `
+                    <span>${escapeHtml(name)}</span>
+                    <span class="remove-btn" onclick="removePlayer(${p}, ${index})">×</span>
+                `;
+                listEl.appendChild(chip);
+            });
+            const inputEl = document.getElementById(`p${p}-input`);
+            if (inputEl) {
+                inputEl.placeholder = currentLang === 'en' ? 'Add player...' : 'Thêm người chơi...';
+            }
+        }
+        updateStatus();
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    function init() {
+        loadTeams();
+        const board = document.getElementById('board');
+        for (let c = 0; c < COLS; c++) {
+            const colDiv = document.createElement('div');
+            colDiv.className = 'column';
+            colDiv.onclick = () => handleColumnClick(c);
+            for (let r = 0; r < ROWS; r++) {
+                const slot = document.createElement('div');
+                slot.className = 'slot';
+                slot.id = `slot-${c}-${r}`;
+                colDiv.appendChild(slot);
+            }
+            board.appendChild(colDiv);
+        }
+    }
+    init();
+    setLanguage('en');
+</script>
+</body>
+</html>

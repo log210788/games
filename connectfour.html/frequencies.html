@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect 4 – Frequencies</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --p1: #ff4757;
+            --p2: #ffa502;
+            --board: #6c63ff;
+            --board-shadow: #4b44cc;
+            --bg: #f0eeff;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: var(--bg);
+            margin: 0;
+            padding: 20px 10px 40px;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* animated wave background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background:
+                radial-gradient(ellipse at 20% 80%, rgba(108,99,255,0.1) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, rgba(255,71,87,0.08) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body > * { position: relative; z-index: 1; }
+
+        h1 {
+            font-family: 'Fredoka One', cursive;
+            font-size: 2rem;
+            color: #3a2fa0;
+            margin: 0 0 6px;
+            letter-spacing: 1px;
+        }
+
+        .subtitle {
+            font-size: 0.95rem;
+            color: #7c72d8;
+            margin-bottom: 14px;
+            font-weight: 700;
+        }
+
+        .status-bar {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.6rem;
+            padding: 10px 36px;
+            border-radius: 50px;
+            margin-bottom: 18px;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+            transition: all 0.3s;
+        }
+        .p1-turn { color: var(--p1); border: 4px solid var(--p1); }
+        .p2-turn { color: var(--p2); border: 4px solid var(--p2); }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background: var(--board);
+            padding: 12px;
+            border-radius: 20px;
+            gap: 8px;
+            box-shadow: 0 10px 0 var(--board-shadow), 0 12px 30px rgba(0,0,0,0.2);
+        }
+        .board { overflow: hidden; }
+
+        .board-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .column-numbers {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            padding: 0 12px;
+            margin-bottom: 6px;
+            width: 100%;
+        }
+
+        .col-num {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.6rem;
+            color: #3a2fa0;
+            text-align: center;
+            background: white;
+            border-radius: 12px;
+            padding: 4px 0;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+            line-height: 1.2;
+            transition: transform 0.15s, background 0.15s;
+            cursor: pointer;
+            user-select: none;
+        }
+        .col-num:hover { background: #ede9ff; transform: translateY(-3px); }
+        .col-num.full { color: #ccc; background: #f0f0f0; cursor: not-allowed; transform: none; }
+
+        .column {
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 8px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 12px;
+            transition: background 0.2s;
+        }
+        .column:hover { background: rgba(255,255,255,0.15); }
+
+        .slot {
+            width: 66px;
+            height: 66px;
+            border-radius: 50%;
+            background: #d8d4ff;
+            border: 3px solid rgba(0,0,0,0.08);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.15);
+        }
+        .slot.red    { background: var(--p1) !important; box-shadow: 0 0 12px rgba(255,71,87,0.6),  inset 0 -3px 6px rgba(0,0,0,0.2); }
+        .slot.yellow { background: var(--p2) !important; box-shadow: 0 0 12px rgba(255,165,2,0.6),  inset 0 -3px 6px rgba(0,0,0,0.2); }
+
+        @keyframes pieceDrop {
+            from { transform: translateY(var(--drop-y)); }
+            to   { transform: translateY(0); }
+        }
+        .slot.dropping { animation: pieceDrop 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+
+        /* ── ICON STRIP ─────────────────────────────────────────────────────── */
+        .freq-icons {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin: 12px 0;
+            flex-wrap: wrap;
+        }
+        .freq-icon {
+            font-size: 2.4rem;
+            opacity: 0.75;
+            transition: transform 0.3s, opacity 0.3s;
+            cursor: default;
+        }
+        .freq-icon:hover { transform: scale(1.25) rotate(8deg); opacity: 1; }
+
+        /* ── DIFFICULTY BAR ─────────────────────────────────────────────────── */
+        .difficulty-bar {
+            display: flex;
+            gap: 0;
+            margin-bottom: 16px;
+            border-radius: 50px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+            border: 3px solid var(--board);
+        }
+        .diff-btn {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.05rem;
+            padding: 10px 26px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.25s;
+            background: white;
+            color: #888;
+        }
+        .diff-btn:hover { background: #ede9ff; }
+        .diff-btn.active { background: var(--board); color: white; }
+
+        /* ── OVERLAY ────────────────────────────────────────────────────────── */
+        #overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10,5,40,0.88);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        #q-card {
+            background: white;
+            padding: 34px 38px 30px;
+            border-radius: 28px;
+            max-width: 540px;
+            width: 100%;
+            text-align: center;
+            border: 6px solid var(--board);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.7); opacity: 0; }
+            to   { transform: scale(1);   opacity: 1; }
+        }
+
+        .player-badge {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1rem;
+            padding: 4px 16px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 14px;
+            color: white;
+        }
+        .badge-red    { background: var(--p1); }
+        .badge-yellow { background: var(--p2); }
+
+        .q-emoji {
+            font-size: 5rem;
+            margin: 8px 0 14px;
+            display: block;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50%       { transform: scale(1.1); }
+        }
+
+        #q-text {
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.55rem;
+            font-weight: 800;
+            color: #2d2780;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        #q-hint {
+            font-size: 0.98rem;
+            color: #8880cc;
+            margin-bottom: 16px;
+            font-style: italic;
+            font-weight: 700;
+            min-height: 24px;
+            transition: opacity 0.3s;
+        }
+
+        .hint-btn {
+            background: none;
+            border: 2px solid #c5bfff;
+            color: #6c63ff;
+            padding: 6px 20px;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 700;
+            cursor: pointer;
+            margin-bottom: 22px;
+            transition: all 0.2s;
+        }
+        .hint-btn:hover { background: #ede9ff; border-color: var(--board); }
+
+        .judge-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+        .btn {
+            padding: 14px 28px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            font-weight: 800;
+            font-family: 'Nunito', sans-serif;
+            transition: transform 0.15s, box-shadow 0.15s;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+        }
+        .btn:hover  { transform: translateY(-2px); box-shadow: 0 6px 0 rgba(0,0,0,0.15); }
+        .btn:active { transform: translateY(2px);  box-shadow: 0 2px 0 rgba(0,0,0,0.15); }
+        .btn-yes { background: #6c63ff; color: white; }
+        .btn-no  { background: #e0e0e0; color: #555; }
+
+        /* ── WIN OVERLAY ────────────────────────────────────────────────────── */
+        #win-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10,5,40,0.92);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        #win-card {
+            background: white;
+            padding: 50px 60px;
+            border-radius: 30px;
+            text-align: center;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #win-card h2 { font-family: 'Fredoka One', cursive; font-size: 3rem; margin: 0 0 10px; }
+        #win-card p  { font-size: 1.3rem; color: #555; margin-bottom: 20px; }
+        .win-icons   { font-size: 2.5rem; margin-bottom: 20px; }
+        .btn-restart { background: var(--board); color: white; padding: 16px 40px; font-size: 1.2rem; }
+
+        /* ── HOW TO PLAY ────────────────────────────────────────────────────── */
+        .how-to-play {
+            position: fixed; left: 16px; top: 50%; transform: translateY(-50%);
+            background: white; border-radius: 20px; padding: 18px 16px; width: 172px;
+            box-shadow: 0 6px 28px rgba(0,0,0,0.14); border: 3px solid var(--board);
+            z-index: 100; font-family: 'Nunito', sans-serif;
+        }
+        .htp-title {
+            font-family: 'Fredoka One', cursive; font-size: 1rem; color: var(--board);
+            text-align: center; margin-bottom: 12px; border-bottom: 2px solid var(--board); padding-bottom: 8px;
+        }
+        .htp-step {
+            display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px;
+            font-size: 0.78rem; font-weight: 700; color: #2c3e50; line-height: 1.35;
+        }
+        .htp-num {
+            background: var(--board); color: white; border-radius: 50%;
+            width: 20px; height: 20px; display: flex; align-items: center;
+            justify-content: center; font-family: 'Fredoka One', cursive;
+            font-size: 0.8rem; flex-shrink: 0;
+        }
+        .htp-mini-board {
+            display: grid; grid-template-columns: repeat(4, 14px); gap: 3px;
+            background: var(--board); padding: 4px; border-radius: 6px;
+            margin: 8px auto 4px; width: fit-content;
+        }
+        .htp-dot { width: 14px; height: 14px; border-radius: 50%; background: rgba(255,255,255,0.25); }
+        .htp-dot.r { background: #ff4757; }
+        .htp-dot.y { background: #ffa502; }
+        .htp-legend { display: flex; gap: 8px; justify-content: center; margin-top: 10px; font-size: 0.75rem; font-weight: 800; }
+
+        /* ── SPECTRUM BADGE on card ─────────────────────────────────────────── */
+        .spectrum-bar {
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet);
+            margin: 12px 0 6px;
+        }
+
+        @media (max-width: 560px) {
+            .slot { width: 40px; height: 40px; }
+            .board { gap: 5px; padding: 8px; }
+            #q-text { font-size: 1.25rem; }
+            .diff-btn { font-size: 0.9rem; padding: 8px 16px; }
+            .how-to-play { display: none; }
+            .q-emoji { font-size: 4rem; }
+        }
+    </style>
+</head>
+<body>
+
+<h1>🎵 Connect 4 – Frequencies</h1>
+<p class="subtitle">High or Low? Fast or Slow? Let's find out! 🌊</p>
+
+<div class="freq-icons">
+    <span class="freq-icon">🐦</span>
+    <span class="freq-icon">🎻</span>
+    <span class="freq-icon">🌈</span>
+    <span class="freq-icon">🦇</span>
+    <span class="freq-icon">🎹</span>
+    <span class="freq-icon">🐬</span>
+    <span class="freq-icon">📻</span>
+    <span class="freq-icon">🔔</span>
+</div>
+
+<div class="difficulty-bar">
+    <button class="diff-btn active" id="btn-easy" onclick="setDifficulty('easy')">⭐ Easy — High or Low?</button>
+    <button class="diff-btn" id="btn-hard" onclick="setDifficulty('hard')">🔥 Hard — Science Q&amp;A</button>
+</div>
+
+<div id="status" class="status-bar p1-turn">🔴 Red Player's Turn</div>
+
+<div class="board-wrapper">
+    <div class="column-numbers" id="col-nums">
+        <div class="col-num" onclick="handleColumnClick(0)">1</div>
+        <div class="col-num" onclick="handleColumnClick(1)">2</div>
+        <div class="col-num" onclick="handleColumnClick(2)">3</div>
+        <div class="col-num" onclick="handleColumnClick(3)">4</div>
+        <div class="col-num" onclick="handleColumnClick(4)">5</div>
+        <div class="col-num" onclick="handleColumnClick(5)">6</div>
+        <div class="col-num" onclick="handleColumnClick(6)">7</div>
+    </div>
+    <div class="board" id="board"></div>
+</div>
+
+<!-- Question Overlay -->
+<div id="overlay">
+    <div id="q-card">
+        <div id="player-badge" class="player-badge badge-red">🔴 Red's Question</div>
+        <span class="q-emoji" id="q-emoji">🎵</span>
+        <div id="q-text">Question goes here…</div>
+        <div class="spectrum-bar"></div>
+        <div id="q-hint"></div>
+        <button class="hint-btn" id="hint-btn" onclick="toggleHint()">💡 Show Answer / Hint</button>
+        <div class="judge-btns">
+            <button class="btn btn-no"  onclick="handleJudge(false)">❌ Try Again</button>
+            <button class="btn btn-yes" onclick="handleJudge(true)">✅ Great Answer!</button>
+        </div>
+    </div>
+</div>
+
+<!-- Win Overlay -->
+<div id="win-overlay">
+    <div id="win-card">
+        <h2 id="win-title">🎉 Red Wins!</h2>
+        <p>Fantastic playing — great science brain! 🧠</p>
+        <div class="win-icons">🏆 🎵 🌟</div>
+        <button class="btn btn-restart" onclick="location.reload()">🔄 Play Again</button>
+    </div>
+</div>
+
+<div class="how-to-play">
+    <div class="htp-title">📖 How to Play</div>
+    <div class="htp-step"><div class="htp-num">1</div><div>Pick a column (1–7)</div></div>
+    <div class="htp-step"><div class="htp-num">2</div><div>Answer the frequency question!</div></div>
+    <div class="htp-step"><div class="htp-num">3</div><div>Correct = piece drops in!</div></div>
+    <div class="htp-step"><div class="htp-num">4</div><div>Connect 4 in a row to win!</div></div>
+    <div class="htp-mini-board">
+        <div class="htp-dot"></div><div class="htp-dot"></div><div class="htp-dot r"></div><div class="htp-dot"></div>
+        <div class="htp-dot"></div><div class="htp-dot r"></div><div class="htp-dot y"></div><div class="htp-dot"></div>
+        <div class="htp-dot r"></div><div class="htp-dot y"></div><div class="htp-dot y"></div><div class="htp-dot"></div>
+        <div class="htp-dot r"></div><div class="htp-dot r"></div><div class="htp-dot r"></div><div class="htp-dot r"></div>
+    </div>
+    <div class="htp-legend"><span>🔴 Red</span><span>🟡 Yellow</span></div>
+</div>
+
+<script>
+    const ROWS = 6, COLS = 7;
+    let currentPlayer = 1;
+    let boardState = Array(COLS).fill(null).map(() => Array(ROWS).fill(null));
+    let activeCol = null;
+    let hintVisible = false;
+    let currentHint = '';
+    let difficulty = 'easy';
+
+    function setDifficulty(mode) {
+        difficulty = mode;
+        document.getElementById('btn-easy').classList.toggle('active', mode === 'easy');
+        document.getElementById('btn-hard').classList.toggle('active', mode === 'hard');
+    }
+
+    // ─── FREQUENCY DATA ─────────────────────────────────────────────────────
+    const items = [
+        {
+            emoji: '🐦',
+            name: 'Bird chirp',
+            easyQ: 'Is a bird chirp HIGH or LOW frequency?',
+            easyA: '🔼 HIGH frequency — birds chirp at high pitches!',
+            hardQ: 'Why can dogs hear bird sounds better than humans?',
+            hardA: 'Dogs hear up to 65,000 Hz; humans only up to 20,000 Hz — so dogs catch more high-frequency sounds!'
+        },
+        {
+            emoji: '🐘',
+            name: 'Elephant rumble',
+            easyQ: 'Is an elephant\'s rumble HIGH or LOW frequency?',
+            easyA: '🔽 LOW frequency — elephants rumble so low, humans can barely hear it!',
+            hardQ: 'How do elephants talk to each other from far away?',
+            hardA: 'They use very low frequency sounds called infrasound, which travel through the ground for kilometres!'
+        },
+        {
+            emoji: '🎻',
+            name: 'Violin',
+            easyQ: 'Does a violin make HIGH or LOW frequency sounds?',
+            easyA: '🔼 HIGH frequency — violins make high-pitched, sweet sounds!',
+            hardQ: 'What makes a violin sound higher than a cello?',
+            hardA: 'Shorter, thinner strings vibrate faster = higher frequency. A cello\'s longer strings vibrate slower!'
+        },
+        {
+            emoji: '🥁',
+            name: 'Bass drum',
+            easyQ: 'Does a bass drum make HIGH or LOW frequency sounds?',
+            easyA: '🔽 LOW frequency — bass drums make deep, booming sounds!',
+            hardQ: 'Why does a bigger drum make a lower sound than a smaller drum?',
+            hardA: 'A bigger drum head vibrates more slowly = lower frequency. Smaller objects vibrate faster!'
+        },
+        {
+            emoji: '🌈',
+            name: 'Red light',
+            easyQ: 'Does RED light have HIGH or LOW frequency compared to other colors?',
+            easyA: '🔽 LOW — red is the lowest frequency color in the rainbow!',
+            hardQ: 'Which color of the rainbow has the HIGHEST frequency?',
+            hardA: 'Violet/purple! ROYGBIV — red is lowest, violet is highest frequency in visible light.'
+        },
+        {
+            emoji: '💜',
+            name: 'Violet light',
+            easyQ: 'Does VIOLET (purple) light have HIGH or LOW frequency?',
+            easyA: '🔼 HIGH — violet light vibrates the fastest of all rainbow colors!',
+            hardQ: 'What comes right after violet on the electromagnetic spectrum?',
+            hardA: 'Ultraviolet (UV) light — invisible to humans but it\'s what causes sunburn!'
+        },
+        {
+            emoji: '🦇',
+            name: 'Bat echolocation',
+            easyQ: 'Do bats use HIGH or LOW frequency sounds to navigate?',
+            easyA: '🔼 VERY HIGH (ultrasonic) — so high, human ears cannot hear it!',
+            hardQ: 'What is echolocation and how do bats use it?',
+            hardA: 'Bats send out high-frequency sound pulses. These bounce off objects and return to the bat, painting a sound picture of the surroundings!'
+        },
+        {
+            emoji: '🐬',
+            name: 'Dolphin clicks',
+            easyQ: 'Do dolphins use HIGH or LOW frequency sounds?',
+            easyA: '🔼 HIGH — dolphins use ultrasonic clicks for echolocation in the ocean!',
+            hardQ: 'How do dolphins find fish in murky water?',
+            hardA: 'They send high-frequency clicks that bounce off fish and return to the dolphin — like an underwater radar!'
+        },
+        {
+            emoji: '📻',
+            name: 'Radio waves',
+            easyQ: 'Do radio waves have HIGH or LOW frequency?',
+            easyA: '🔽 LOW frequency — radio waves are the longest, lowest energy waves!',
+            hardQ: 'How does a radio station get music into your speaker?',
+            hardA: 'Music is encoded onto a specific radio frequency (like 98.7 FM). Your radio tunes to that frequency and decodes the sound!'
+        },
+        {
+            emoji: '🎹',
+            name: 'Piano keys',
+            easyQ: 'Do keys on the LEFT side of a piano make HIGH or LOW sounds?',
+            easyA: '🔽 LOW — left keys make deep bass notes with low frequency!',
+            hardQ: 'What happens to frequency as you move from left to right on a piano?',
+            hardA: 'Frequency increases — each key to the right is a higher pitch! The strings get shorter, vibrating faster.'
+        },
+        {
+            emoji: '🔔',
+            name: 'Small bell',
+            easyQ: 'Does a small bell make a HIGH or LOW frequency sound?',
+            easyA: '🔼 HIGH — small bells ring at high, clear pitches!',
+            hardQ: 'Why does a big church bell sound lower than a small dinner bell?',
+            hardA: 'Bigger = slower vibrations = lower frequency. Smaller = faster vibrations = higher frequency. Size matters!'
+        },
+        {
+            emoji: '🎺',
+            name: 'Tuba',
+            easyQ: 'Does a tuba make HIGH or LOW frequency sounds?',
+            easyA: '🔽 LOW — the tuba is the lowest instrument in a band!',
+            hardQ: 'Why does a tuba sound lower than a trumpet?',
+            hardA: 'The tuba has much longer tubing. Longer air column = slower vibrations = lower frequency sounds!'
+        },
+        {
+            emoji: '🌊',
+            name: 'Ocean wave',
+            easyQ: 'Do ocean waves have HIGH or LOW frequency compared to sound waves?',
+            easyA: '🔽 VERY LOW — ocean waves are much, much slower than sound waves!',
+            hardQ: 'What is frequency measured in?',
+            hardA: 'Hertz (Hz)! 1 Hz = one complete wave cycle per second. Ocean waves are about 0.1 Hz; middle C piano note is 262 Hz!'
+        },
+        {
+            emoji: '🦟',
+            name: 'Mosquito buzz',
+            easyQ: 'Is a mosquito\'s buzzing HIGH or LOW frequency?',
+            easyA: '🔼 HIGH — that annoying buzz is a high-pitched sound!',
+            hardQ: 'Why do mosquitoes make a buzzing sound?',
+            hardA: 'Their wings beat 300–600 times per second, creating rapid air vibrations we hear as a high-frequency buzz!'
+        },
+        {
+            emoji: '🎸',
+            name: 'Bass guitar',
+            easyQ: 'Does a bass guitar make HIGH or LOW frequency sounds?',
+            easyA: '🔽 LOW — bass guitars create the deep, thumping sounds in music!',
+            hardQ: 'What happens to a guitar string\'s frequency when you press a fret?',
+            hardA: 'Pressing a fret shortens the vibrating part of the string, making it vibrate faster = higher frequency note!'
+        },
+        {
+            emoji: '☀️',
+            name: 'Sunlight',
+            easyQ: 'Is sunlight a HIGH or LOW frequency wave compared to radio waves?',
+            easyA: '🔼 MUCH HIGHER — visible light has far higher frequency than radio waves!',
+            hardQ: 'What is the electromagnetic spectrum?',
+            hardA: 'The full range of light waves — from low-frequency radio waves all the way up to super high-frequency gamma rays!'
+        },
+        {
+            emoji: '🎵',
+            name: 'High musical note',
+            easyQ: 'Does a higher musical note have MORE or FEWER vibrations per second?',
+            easyA: '🔼 MORE vibrations — higher notes vibrate faster (higher frequency)!',
+            hardQ: 'What frequency is concert pitch "A"?',
+            hardA: '440 Hz! That means the string or air vibrates 440 times per second. Orchestras all tune to this note!'
+        },
+        {
+            emoji: '⚡',
+            name: 'X-ray',
+            easyQ: 'Do X-rays have HIGHER or LOWER frequency than visible light?',
+            easyA: '🔼 MUCH HIGHER — X-rays vibrate far faster than visible light!',
+            hardQ: 'Why can X-rays pass through your body?',
+            hardA: 'X-rays have so much energy (very high frequency) they pass through soft tissue, but dense bones absorb them — that\'s how X-ray pictures work!'
+        },
+        {
+            emoji: '🌡️',
+            name: 'Microwave oven',
+            easyQ: 'Do microwaves have HIGHER or LOWER frequency than radio waves?',
+            easyA: '🔼 HIGHER — microwaves vibrate faster than radio waves!',
+            hardQ: 'How does a microwave oven heat food?',
+            hardA: 'Microwave radiation at 2.45 GHz makes water molecules in food vibrate rapidly. That vibration creates heat — cooking your food from the inside!'
+        },
+        {
+            emoji: '🎙️',
+            name: 'Microphone',
+            easyQ: 'What does a microphone detect — sound waves at HIGH, LOW, or BOTH frequencies?',
+            easyA: '🔄 BOTH — microphones pick up a wide range of sound frequencies!',
+            hardQ: 'What does a microphone actually do to sound waves?',
+            hardA: 'It converts air vibrations (sound waves) into electrical signals. Speakers do the opposite — turning electrical signals back into sound!'
+        },
+    ];
+
+    let deck = [];
+    function getNextItem() {
+        if (deck.length === 0) deck = items.map((_, i) => i).sort(() => Math.random() - 0.5);
+        return items[deck.pop()];
+    }
+
+    // ─── AUDIO ───────────────────────────────────────────────────────────────
+    let audioCtx;
+    function getCtx() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        return audioCtx;
+    }
+    function playSound(type) {
+        try {
+            const ctx = getCtx();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            if (type === 'correct') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, ctx.currentTime);
+                osc.frequency.setValueAtTime(550, ctx.currentTime + 0.12);
+                osc.frequency.setValueAtTime(660, ctx.currentTime + 0.24);
+            } else {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(220, ctx.currentTime);
+                osc.frequency.setValueAtTime(180, ctx.currentTime + 0.15);
+            }
+            gain.gain.setValueAtTime(0.08, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+            osc.start(); osc.stop(ctx.currentTime + 0.5);
+        } catch(e) {}
+    }
+
+    // ─── BOARD INIT ──────────────────────────────────────────────────────────
+    function init() {
+        const board = document.getElementById('board');
+        for (let c = 0; c < COLS; c++) {
+            const colDiv = document.createElement('div');
+            colDiv.className = 'column';
+            colDiv.onclick = () => handleColumnClick(c);
+            for (let r = 0; r < ROWS; r++) {
+                const slot = document.createElement('div');
+                slot.className = 'slot';
+                slot.id = `slot-${c}-${r}`;
+                colDiv.appendChild(slot);
+            }
+            board.appendChild(colDiv);
+        }
+    }
+
+    function updateColumnNumbers() {
+        document.querySelectorAll('.col-num').forEach((el, c) => {
+            el.classList.toggle('full', boardState[c].indexOf(null) === -1);
+        });
+    }
+
+    function handleColumnClick(c) {
+        if (boardState[c].indexOf(null) === -1) return;
+        activeCol = c;
+        hintVisible = false;
+        const item = getNextItem();
+
+        const isEasy = difficulty === 'easy';
+        document.getElementById('q-emoji').innerText = item.emoji;
+        document.getElementById('q-text').innerText = isEasy ? item.easyQ : item.hardQ;
+        currentHint = isEasy ? item.easyA : item.hardA;
+        document.getElementById('q-hint').innerText = '';
+        document.getElementById('hint-btn').innerText = '💡 Show Answer / Hint';
+
+        const badge = document.getElementById('player-badge');
+        badge.innerText = currentPlayer === 1 ? '🔴 Red\'s Question' : '🟡 Yellow\'s Question';
+        badge.className = 'player-badge ' + (currentPlayer === 1 ? 'badge-red' : 'badge-yellow');
+        document.getElementById('overlay').style.display = 'flex';
+    }
+
+    function toggleHint() {
+        hintVisible = !hintVisible;
+        document.getElementById('q-hint').innerText = hintVisible ? currentHint : '';
+        document.getElementById('hint-btn').innerText = hintVisible ? '🙈 Hide Hint' : '💡 Show Answer / Hint';
+    }
+
+    function handleJudge(isCorrect) {
+        document.getElementById('overlay').style.display = 'none';
+        if (!isCorrect) { playSound('wrong'); return; }
+        playSound('correct');
+        const r = boardState[activeCol].indexOf(null);
+        boardState[activeCol][r] = currentPlayer;
+        const slot = document.getElementById(`slot-${activeCol}-${r}`);
+        const slotH = 74;
+        slot.style.setProperty('--drop-y', `-${(ROWS - r) * slotH}px`);
+        slot.className = `slot ${currentPlayer === 1 ? 'red' : 'yellow'} dropping`;
+        slot.addEventListener('animationend', () => slot.classList.remove('dropping'), { once: true });
+        updateColumnNumbers();
+        if (checkWin(activeCol, r)) { setTimeout(() => showWin(currentPlayer), 300); return; }
+        currentPlayer = currentPlayer === 1 ? 2 : 1;
+        updateStatus();
+    }
+
+    function updateStatus() {
+        const s = document.getElementById('status');
+        s.innerText = currentPlayer === 1 ? '🔴 Red Player\'s Turn' : '🟡 Yellow Player\'s Turn';
+        s.className = `status-bar ${currentPlayer === 1 ? 'p1-turn' : 'p2-turn'}`;
+    }
+
+    function showWin(player) {
+        const title = document.getElementById('win-title');
+        title.innerText = player === 1 ? '🎉 Red Wins!' : '🎉 Yellow Wins!';
+        title.style.color = player === 1 ? '#ff4757' : '#ffa502';
+        document.getElementById('win-overlay').style.display = 'flex';
+    }
+
+    function checkWin(c, r) {
+        const p = boardState[c][r];
+        const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+        for (let [dc, dr] of dirs) {
+            let count = 1;
+            for (let i = 1; i < 4; i++) { if (boardState[c+dc*i]?.[r+dr*i] === p) count++; else break; }
+            for (let i = 1; i < 4; i++) { if (boardState[c-dc*i]?.[r-dr*i] === p) count++; else break; }
+            if (count >= 4) return true;
+        }
+        return false;
+    }
+
+    init();
+</script>
+</body>
+</html>

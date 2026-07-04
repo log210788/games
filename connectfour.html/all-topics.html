@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect 4 – All Topics</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --p1: #ff4757;
+            --p2: #ffa502;
+            --board: #1e90ff;
+            --bg: #e8f4fd;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: var(--bg);
+            margin: 0;
+            padding: 20px 10px 40px;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-family: 'Fredoka One', cursive;
+            font-size: 2rem;
+            color: #1e3a5f;
+            margin: 0 0 14px;
+            letter-spacing: 1px;
+        }
+
+        .status-bar {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.6rem;
+            padding: 10px 36px;
+            border-radius: 50px;
+            margin-bottom: 18px;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+            transition: all 0.3s;
+        }
+        .p1-turn { color: var(--p1); border: 4px solid var(--p1); }
+        .p2-turn { color: var(--p2); border: 4px solid var(--p2); }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background: var(--board);
+            padding: 12px;
+            border-radius: 20px;
+            gap: 8px;
+            box-shadow: 0 10px 0 #0972d4, 0 12px 30px rgba(0,0,0,0.2);
+        }
+
+        .board-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .column-numbers {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            padding: 0 12px;
+            margin-bottom: 6px;
+            width: 100%;
+        }
+
+        .col-num {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.6rem;
+            color: #1e3a5f;
+            text-align: center;
+            background: white;
+            border-radius: 12px;
+            padding: 4px 0;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+            line-height: 1.2;
+            transition: transform 0.15s, background 0.15s;
+            cursor: pointer;
+            user-select: none;
+        }
+        .col-num:hover {
+            background: #fffbe6;
+            transform: translateY(-3px);
+        }
+        .col-num.full {
+            color: #ccc;
+            background: #f0f0f0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 8px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 12px;
+            transition: background 0.2s;
+        }
+        .column:hover { background: rgba(255,255,255,0.15); }
+
+        .slot {
+            width: 66px;
+            height: 66px;
+            border-radius: 50%;
+            background: #d6eaff;
+            border: 3px solid rgba(0,0,0,0.08);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.15);
+        }
+
+        .slot.red   { background: var(--p1) !important; box-shadow: 0 0 12px rgba(255,71,87,0.6), inset 0 -3px 6px rgba(0,0,0,0.2); }
+        .slot.yellow{ background: var(--p2) !important; box-shadow: 0 0 12px rgba(255,165,2,0.6), inset 0 -3px 6px rgba(0,0,0,0.2); }
+
+        /* Overlay */
+        #overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10,20,50,0.88);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        #q-card {
+            background: white;
+            padding: 36px 40px 32px;
+            border-radius: 28px;
+            max-width: 560px;
+            width: 100%;
+            text-align: center;
+            border: 6px solid var(--board);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.7); opacity: 0; }
+            to   { transform: scale(1);   opacity: 1; }
+        }
+
+        .player-badge {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1rem;
+            padding: 4px 16px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 14px;
+            color: white;
+        }
+        .badge-red    { background: var(--p1); }
+        .badge-yellow { background: var(--p2); }
+
+        #q-topic-label {
+            font-family: 'Fredoka One', cursive;
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #q-text {
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.7rem;
+            font-weight: 800;
+            color: #1e3a5f;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        #q-translation {
+            font-size: 1.15rem;
+            color: #5a7a9a;
+            margin-bottom: 22px;
+            min-height: 28px;
+            font-style: italic;
+            transition: opacity 0.3s;
+        }
+
+        .question-icon {
+            margin: 10px 0;
+            animation: bounce 2s infinite;
+        }
+
+        .question-icon img {
+            width: 180px;
+            height: 140px;
+            object-fit: cover;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            border: 3px solid #e0e0e0;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        .translate-btn {
+            background: none;
+            border: 2px solid #aac4e0;
+            color: #4a7aaa;
+            padding: 6px 20px;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 700;
+            cursor: pointer;
+            margin-bottom: 24px;
+            transition: all 0.2s;
+        }
+        .translate-btn:hover { background: #e8f4fd; border-color: #1e90ff; color: #1e90ff; }
+
+        .judge-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+        .btn {
+            padding: 14px 28px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            font-weight: 800;
+            font-family: 'Nunito', sans-serif;
+            transition: transform 0.15s, box-shadow 0.15s;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+        }
+        .btn:hover  { transform: translateY(-2px); box-shadow: 0 6px 0 rgba(0,0,0,0.15); }
+        .btn:active { transform: translateY(2px);  box-shadow: 0 2px 0 rgba(0,0,0,0.15); }
+        .btn-yes { background: #2ecc71; color: white; }
+        .btn-no  { background: #e0e0e0; color: #555; }
+
+        /* Win overlay */
+        #win-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10,20,50,0.92);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        #win-card {
+            background: white;
+            padding: 50px 60px;
+            border-radius: 30px;
+            text-align: center;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #win-card h2 { font-family: 'Fredoka One', cursive; font-size: 3rem; margin: 0 0 10px; }
+        #win-card p  { font-size: 1.3rem; color: #555; margin-bottom: 20px; }
+        .win-icons { font-size: 2rem; margin-bottom: 20px; }
+        .btn-restart { background: var(--board); color: white; padding: 16px 40px; font-size: 1.2rem; }
+
+        /* Selector bars */
+        .selector-bar {
+            display: flex;
+            gap: 0;
+            margin-bottom: 12px;
+            border-radius: 50px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+            border: 3px solid var(--board);
+            flex-wrap: wrap;
+        }
+        .sel-btn {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1rem;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.25s;
+            background: white;
+            color: #888;
+        }
+        .sel-btn:hover { background: #e8f4fd; }
+        .sel-btn.active {
+            background: var(--board);
+            color: white;
+        }
+
+        .difficulty-bar {
+            display: flex;
+            gap: 0;
+            margin-bottom: 16px;
+            border-radius: 50px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+            border: 3px solid #2ecc71;
+        }
+        .diff-btn {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1rem;
+            padding: 10px 22px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.25s;
+            background: white;
+            color: #888;
+        }
+        .diff-btn:hover { background: #e8fdf0; }
+        .diff-btn.active {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .qr-sidebar {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: white;
+            padding: 14px;
+            border-radius: 18px;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.15);
+            text-align: center;
+            z-index: 100;
+        }
+        .qr-sidebar img {
+            width: 120px;
+            height: 120px;
+            border-radius: 10px;
+        }
+        .qr-sidebar p {
+            margin: 8px 0 0;
+            font-family: 'Fredoka One', cursive;
+            font-size: 0.75rem;
+            color: #1e3a5f;
+        }
+
+        @keyframes pieceDrop {
+            from { transform: translateY(var(--drop-y)); }
+            to   { transform: translateY(0); }
+        }
+        .slot.dropping { animation: pieceDrop 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+        .board { overflow: hidden; }
+        .how-to-play {
+            position: fixed; left: 16px; top: 50%; transform: translateY(-50%);
+            background: white; border-radius: 20px; padding: 18px 16px; width: 170px;
+            box-shadow: 0 6px 28px rgba(0,0,0,0.14); border: 3px solid var(--board);
+            z-index: 100; font-family: 'Nunito', sans-serif;
+        }
+        .htp-title { font-family: 'Fredoka One', cursive; font-size: 1rem; color: var(--board); text-align: center; margin-bottom: 12px; border-bottom: 2px solid var(--board); padding-bottom: 8px; }
+        .htp-step { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px; font-size: 0.78rem; font-weight: 700; color: #2c3e50; line-height: 1.35; }
+        .htp-num { background: var(--board); color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-family: 'Fredoka One', cursive; font-size: 0.8rem; flex-shrink: 0; }
+        .htp-mini-board { display: grid; grid-template-columns: repeat(4, 14px); gap: 3px; background: var(--board); padding: 4px; border-radius: 6px; margin: 8px auto 4px; width: fit-content; }
+        .htp-dot { width: 14px; height: 14px; border-radius: 50%; background: rgba(255,255,255,0.25); }
+        .htp-dot.r { background: #ff4757; }
+        .htp-dot.y { background: #ffa502; }
+        .htp-legend { display: flex; gap: 8px; justify-content: center; margin-top: 10px; font-size: 0.75rem; font-weight: 800; }
+        @media (max-width: 560px) {
+            .slot { width: 40px; height: 40px; }
+            .board { gap: 5px; padding: 8px; }
+            #q-text { font-size: 1.3rem; }
+            .sel-btn { font-size: 0.85rem; padding: 8px 14px; }
+            .diff-btn { font-size: 0.85rem; padding: 8px 14px; }
+            .qr-sidebar { position: static; transform: none; margin-top: 20px; }
+            .how-to-play { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<h1>🎮 Connect 4 – All Topics</h1>
+
+<!-- Topic Selector -->
+<div class="selector-bar" id="topic-bar">
+    <button class="sel-btn active" onclick="setTopic('all')">🎲 All Topics</button>
+    <button class="sel-btn" onclick="setTopic('jobs')">💼 Jobs</button>
+    <button class="sel-btn" onclick="setTopic('habits')">🏠 Habits</button>
+    <button class="sel-btn" onclick="setTopic('pastcont')">⏪ Past Continuous</button>
+</div>
+
+<!-- Image Category Selector (for Jobs topic) -->
+<div class="selector-bar" id="image-bar">
+    <button class="sel-btn active" onclick="setImageSet('all')">🖼️ All Images</button>
+    <button class="sel-btn" onclick="setImageSet('jobs')">💼 Jobs</button>
+    <button class="sel-btn" onclick="setImageSet('animals')">🐾 Animals</button>
+    <button class="sel-btn" onclick="setImageSet('classroom')">🏫 Classroom</button>
+    <button class="sel-btn" onclick="setImageSet('clothes')">👕 Clothes</button>
+    <button class="sel-btn" onclick="setImageSet('family')">👨‍👩‍👧 Family</button>
+    <button class="sel-btn" onclick="setImageSet('food')">🍔 Food</button>
+    <button class="sel-btn" onclick="setImageSet('places')">🏙️ Places</button>
+    <button class="sel-btn" onclick="setImageSet('sports')">⚽ Sports</button>
+    <button class="sel-btn" onclick="setImageSet('transport')">🚗 Transport</button>
+    <button class="sel-btn" onclick="setImageSet('weather')">🌤️ Weather</button>
+</div>
+
+<!-- Difficulty (shown for jobs-style image questions) -->
+<div class="difficulty-bar" id="diff-bar">
+    <button class="diff-btn active" id="btn-easy" onclick="setDifficulty('easy')">⭐ Easy — Name It</button>
+    <button class="diff-btn" id="btn-hard" onclick="setDifficulty('hard')">🔥 Hard — Answer a Question</button>
+</div>
+
+<div id="status" class="status-bar p1-turn">🔴 Red Player's Turn</div>
+
+<div class="board-wrapper">
+    <div class="column-numbers" id="col-nums">
+        <div class="col-num" onclick="handleColumnClick(0)">1</div>
+        <div class="col-num" onclick="handleColumnClick(1)">2</div>
+        <div class="col-num" onclick="handleColumnClick(2)">3</div>
+        <div class="col-num" onclick="handleColumnClick(3)">4</div>
+        <div class="col-num" onclick="handleColumnClick(4)">5</div>
+        <div class="col-num" onclick="handleColumnClick(5)">6</div>
+        <div class="col-num" onclick="handleColumnClick(6)">7</div>
+    </div>
+    <div class="board" id="board"></div>
+</div>
+
+<!-- Question Overlay -->
+<div id="overlay">
+    <div id="q-card">
+        <div id="player-badge" class="player-badge badge-red">🔴 Red's Question</div>
+        <div id="q-topic-label"></div>
+        <div id="q-text">Question goes here...</div>
+        <div id="q-translation"></div>
+        <div class="question-icon" id="question-icon" style="display:none;"><img id="q-image" src="" alt="Question image"></div>
+        <button class="translate-btn" id="translate-btn" onclick="toggleTranslation()">🇹🇭 Show Thai Translation</button>
+        <div class="judge-btns">
+            <button class="btn btn-no"  onclick="handleJudge(false)">❌ Try Again</button>
+            <button class="btn btn-yes" onclick="handleJudge(true)">✅ Great Answer!</button>
+        </div>
+    </div>
+</div>
+
+<!-- Win Overlay -->
+<div id="win-overlay">
+    <div id="win-card">
+        <h2 id="win-title">🎉 Red Wins!</h2>
+        <p>Fantastic playing — well done!</p>
+        <div class="win-icons">
+            <span>🏆</span>
+            <span>🌟</span>
+            <span>🎓</span>
+        </div>
+        <button class="btn btn-restart" onclick="location.reload()">🔄 Play Again</button>
+    </div>
+</div>
+
+<div class="how-to-play">
+    <div class="htp-title">How to Play</div>
+    <div class="htp-step"><div class="htp-num">1</div><div class="htp-text" data-en="Pick a column (1-7)" data-th="เลือกคอลัมน์ (1-7)">Pick a column (1-7)</div></div>
+    <div class="htp-step"><div class="htp-num">2</div><div class="htp-text" data-en="Answer correctly" data-th="ตอบให้ถูกต้อง">Answer correctly</div></div>
+    <div class="htp-step"><div class="htp-num">3</div><div class="htp-text" data-en="Piece drops in!" data-th="ชิ้นส่วนตกลงไป!">Piece drops in!</div></div>
+    <div class="htp-step"><div class="htp-num">4</div><div class="htp-text" data-en="Connect 4 to win!" data-th="เชื่อม 4 ชิ้นเพื่อชนะ!">Connect 4 to win!</div></div>
+    <button onclick="htpToggleLang(this)" style="margin-top:8px;width:100%;padding:5px;border-radius:10px;border:2px solid var(--board);background:white;font-family:'Fredoka One',cursive;font-size:0.8rem;color:var(--board);cursor:pointer;">Thai</button>
+    <div class="htp-mini-board">
+        <div class="htp-dot"></div><div class="htp-dot"></div><div class="htp-dot r"></div><div class="htp-dot"></div>
+        <div class="htp-dot"></div><div class="htp-dot r"></div><div class="htp-dot y"></div><div class="htp-dot"></div>
+        <div class="htp-dot r"></div><div class="htp-dot y"></div><div class="htp-dot y"></div><div class="htp-dot"></div>
+        <div class="htp-dot r"></div><div class="htp-dot r"></div><div class="htp-dot r"></div><div class="htp-dot r"></div>
+    </div>
+    <div class="htp-legend"><span>Red</span><span>Yellow</span></div>
+</div>
+<div class="qr-sidebar">
+    <img src="../overlays/teacherlewis1-overlay/public/qrcode_preply.com.png" alt="Preply QR Code">
+    <p>Book a lesson!</p>
+</div>
+
+<script>
+    const ROWS = 6, COLS = 7;
+    let currentPlayer = 1;
+    let boardState = Array(COLS).fill(null).map(() => Array(ROWS).fill(null));
+    let activeCol = null;
+    let translationVisible = false;
+    let currentTranslation = '';
+    let selectedTopic = 'all';
+    let selectedImageSet = 'all';
+    let difficulty = 'easy';
+
+    // ─── IMAGE DATA BY CATEGORY ───────────────────────────────────────────
+    // Each category has: folder path, and an array of { file, name, nameTh, g, q, qTh }
+    // Add images to any category — they will automatically appear in the game.
+    const IMG_BASE = '../images/';
+
+    const imageCategories = {
+        jobs: {
+            label: 'Jobs',
+            path: 'jobs/',
+            items: [
+                { file: 'imgi_1_1479446325_7_images-1.jpg',   name: 'Homemaker',       nameTh: 'แม่บ้าน',              g: 'she', q: 'What does a homemaker do every day?',            qTh: 'แม่บ้านทำอะไรทุกวัน?', ans: 'Clean, cook, and look after the house', ansTh: 'ทำความสะอาด ทำอาหาร และดูแลบ้าน', emoji: '🏠' },
+                { file: 'imgi_2_1479446345_10_images-2.jpg',   name: 'Bus Driver',      nameTh: 'คนขับรถเมล์',          g: 'she', q: 'Where does a bus driver work?',                  qTh: 'คนขับรถเมล์ทำงานที่ไหน?', ans: 'On a bus and on the road', ansTh: 'บนรถเมล์และบนถนน', emoji: '🚌' },
+                { file: 'imgi_3_1479446367_11_images-3.jpg',   name: 'Cleaner',         nameTh: 'คนทำความสะอาด',        g: 'she', q: 'What tools does a cleaner use?',                 qTh: 'คนทำความสะอาดใช้เครื่องมืออะไรบ้าง?', ans: 'A mop, broom, and vacuum cleaner', ansTh: 'ไม้ถูพื้น ไม้กวาด และเครื่องดูดฝุ่น', emoji: '🧹' },
+                { file: 'imgi_4_1479446389_6_images-4.jpg',    name: 'Dancer',          nameTh: 'นักเต้น',              g: 'she', q: 'Where does a dancer perform?',                   qTh: 'นักเต้นแสดงที่ไหน?', ans: 'On a stage, in theatres, or in music videos', ansTh: 'บนเวที ในโรงละคร หรือในมิวสิกวิดีโอ', emoji: '💃' },
+                { file: 'imgi_5_1479446405_9_images.jpg',      name: 'Chef',            nameTh: 'พ่อครัว',              g: 'he',  q: 'What does a chef cook?',                         qTh: 'พ่อครัวทำอาหารอะไร?', ans: 'Delicious food and meals in a restaurant', ansTh: 'อาหารอร่อยๆ ในร้านอาหาร', emoji: '👨‍🍳' },
+                { file: 'imgi_6_1479446423_8_imgres-1.jpg',    name: 'Nurse',           nameTh: 'พยาบาล',               g: 'she', q: 'Where does a nurse work?',                       qTh: 'พยาบาลทำงานที่ไหน?', ans: 'In a hospital or clinic helping doctors', ansTh: 'ในโรงพยาบาลหรือคลินิกช่วยเหลือคุณหมอ', emoji: '👩‍⚕️' },
+                { file: 'imgi_7_1479446441_7_imgres-2.jpg',    name: 'Police Officer',  nameTh: 'ตำรวจ',                g: 'he',  q: 'What does a police officer do?',                 qTh: 'ตำรวจทำหน้าที่อะไร?', ans: 'Protect people and catch criminals', ansTh: 'ปกป้องผู้คนและจับอาชญากร', emoji: '👮' },
+                { file: 'imgi_8_1479446458_10_imgres-3.jpg',   name: 'Firefighter',     nameTh: 'นักดับเพลิง',          g: 'she', q: 'When do people call a firefighter?',             qTh: 'คนจะโทรหานักดับเพลิงเมื่อไหร่?', ans: 'When there is a fire or emergency', ansTh: 'เมื่อมีไฟไหม้หรือเหตุฉุกเฉิน', emoji: '🧑‍🚒' },
+                { file: 'imgi_9_1479446482_8_imgres-4.jpg',    name: 'Office Worker',   nameTh: 'พนักงานออฟฟิศ',        g: 'he',  q: 'What does an office worker do every day?',       qTh: 'พนักงานออฟฟิศทำอะไรทุกวัน?', ans: 'Work on a computer, write emails, and do paperwork', ansTh: 'ทำงานบนคอมพิวเตอร์ เขียนอีเมล และงานเอกสาร', emoji: '🧑‍💻' },
+                { file: 'imgi_10_1479446500_10_imgres-5.jpg',  name: 'Engineer',        nameTh: 'วิศวกร',               g: 'he',  q: 'What does an engineer build or design?',         qTh: 'วิศวกรสร้างหรือออกแบบอะไร?', ans: 'Bridges, buildings, roads, and machines', ansTh: 'สะพาน อาคาร ถนน และเครื่องจักร', emoji: '👷' },
+                { file: 'imgi_11_1479446523_9_imgres-6.jpg',   name: 'Dentist',         nameTh: 'ทันตแพทย์',            g: 'she', q: 'How often should you visit the dentist?',        qTh: 'คุณควรไปพบทันตแพทย์บ่อยแค่ไหน?', ans: 'Every 6 months (twice a year)', ansTh: 'ทุกๆ 6 เดือน (สองครั้งต่อปี)', emoji: '🦷' },
+                { file: 'imgi_12_1479446611_10_imgres-7.jpg',  name: 'Secretary',       nameTh: 'เลขานุการ',            g: 'she', q: 'What does a secretary do in an office?',         qTh: 'เลขานุการทำอะไรในออฟฟิศ?', ans: 'Answer phones, schedule meetings, and organize files', ansTh: 'รับโทรศัพท์ จัดตารางการประชุม และจัดระเบียบไฟล์', emoji: '🗄️' },
+                { file: 'imgi_13_1479446632_11_imgres-8.jpg',  name: 'Taxi Driver',     nameTh: 'คนขับแท็กซี่',         g: 'he',  q: 'Where does a taxi driver take people?',          qTh: 'คนขับแท็กซี่พาผู้คนไปที่ไหน?', ans: 'To their destinations like the airport or shopping mall', ansTh: 'ไปยังจุดหมายปลายทาง เช่น สนามบิน หรือห้างสรรพสินค้า', emoji: '🚕' },
+                { file: 'imgi_14_1479446651_11_imgres-9.jpg',  name: 'Mechanic',        nameTh: 'ช่างซ่อมรถ',           g: 'he',  q: 'What does a mechanic fix?',                      qTh: 'ช่างซ่อมรถซ่อมอะไร?', ans: 'Cars, trucks, and other vehicles', ansTh: 'รถยนต์ รถบรรทุก และยานพาหนะอื่นๆ', emoji: '🔧' },
+                { file: 'imgi_15_1479446676_10_imgres-10.jpg', name: 'Salesperson',     nameTh: 'พนักงานขาย',           g: 'he',  q: 'What skills does a salesperson need?',           qTh: 'พนักงานขายต้องมีทักษะอะไรบ้าง?', ans: 'Good communication and persuasion skills', ansTh: 'ทักษะการสื่อสารและการโน้มน้าวใจที่ดี', emoji: '🛍️' },
+                { file: 'imgi_16_1479446697_9_imgres-11.jpg',  name: 'Barista',         nameTh: 'บาริสต้า',             g: 'he',  q: 'What does a barista make?',                      qTh: 'บาริสต้าทำอะไร?', ans: 'Coffee, tea, and other hot/cold drinks', ansTh: 'กาแฟ ชา และเครื่องดื่มร้อน/เย็นอื่นๆ', emoji: '☕' },
+            ]
+        },
+        animals:   { label: 'Animals',   path: 'animals/',   basePath: '', items: [
+                { file: 'imgi_1_1593138851_116301.jpg',   name: 'Turtle',       nameTh: 'เต่า',           type: 'animal', q: 'Where does a turtle live?',                     qTh: 'เต่าอาศัยอยู่ที่ไหน?', ans: 'In water and on land', ansTh: 'ในน้ำและบนบก', emoji: '🐢' },
+                { file: 'imgi_2_1593138564_146507.jpg',    name: 'Cheetah',      nameTh: 'เสือชีตาห์',      type: 'animal', q: 'How fast can a cheetah run?',                   qTh: 'เสือชีตาห์วิ่งได้เร็วแค่ไหน?', ans: 'Up to 120 km/h', ansTh: 'สูงสุด 120 กม./ชม.', emoji: '🐆' },
+                { file: 'imgi_3_1593138555_194612.jpg',    name: 'Butterfly',    nameTh: 'ผีเสื้อ',         type: 'animal', q: 'What does a butterfly start life as?',          qTh: 'ผีเสื้อเริ่มชีวิตจากอะไร?', ans: 'A caterpillar', ansTh: 'หนอนผีเสื้อ', emoji: '🦋' },
+                { file: 'imgi_4_1593138683_102525.jpg',    name: 'Hippo',        nameTh: 'ฮิปโป',           type: 'animal', q: 'Where do hippos spend most of their time?',    qTh: 'ฮิปโปใช้เวลาส่วนใหญ่ที่ไหน?', ans: 'In the water', ansTh: 'ในน้ำ', emoji: '🦛' },
+                { file: 'imgi_5_1593139216_80129.jpg',     name: 'Goose',        nameTh: 'ห่าน',            type: 'animal', q: 'What sound does a goose make?',                 qTh: 'ห่านส่งเสียงอะไร?', ans: 'Honk honk!', ansTh: 'เสียงร้องของห่าน (ฮ้ง ฮ้ง)', emoji: '🦆' },
+                { file: 'imgi_6_1593138753_161513.jpg',    name: 'Monkey',       nameTh: 'ลิง',             type: 'animal', q: 'What do monkeys like to eat?',                  qTh: 'ลิงชอบกินอะไร?', ans: 'Bananas and fruit', ansTh: 'กล้วยและผลไม้', emoji: '🐵' },
+                { file: 'imgi_7_1593139205_106878.jpg',    name: 'Cow',          nameTh: 'วัว',             type: 'animal', q: 'What do we get from cows?',                     qTh: 'เราได้อะไรจากวัว?', ans: 'Milk and beef', ansTh: 'นมและเนื้อวัว', emoji: '🐄' },
+                { file: 'imgi_8_1593138648_116892.jpg',    name: 'Giraffe',      nameTh: 'ยีราฟ',           type: 'animal', q: 'Why does a giraffe have a long neck?',          qTh: 'ทำไมยีราฟถึงมีคอยาว?', ans: 'To eat leaves from tall trees', ansTh: 'เพื่อกินใบไม้จากต้นไม้สูง', emoji: '🦒' },
+                { file: 'imgi_9_1593138872_97712.jpg',     name: 'Worm',         nameTh: 'หนอน',            type: 'animal', q: 'Where do worms live?',                          qTh: 'หนอนอาศัยอยู่ที่ไหน?', ans: 'In the soil (underground)', ansTh: 'ในดิน (ใต้ดิน)', emoji: '🪱' },
+                { file: 'imgi_10_1593139235_117141.jpg',   name: 'Octopus',      nameTh: 'ปลาหมึก',         type: 'animal', q: 'How many arms does an octopus have?',           qTh: 'ปลาหมึกมีแขนกี่แขน?', ans: 'Eight (8)', ansTh: 'แปดแขน', emoji: '🐙' },
+                { file: 'imgi_11_1593138829_90608.jpg',    name: 'Spider',       nameTh: 'แมงมุม',          type: 'animal', q: 'What does a spider make?',                      qTh: 'แมงมุมทำอะไร?', ans: 'A web', ansTh: 'ใยแมงมุม', emoji: '🕷️' },
+                { file: 'imgi_12_1593138840_113266.jpg',   name: 'Tiger',        nameTh: 'เสือ',            type: 'animal', q: 'What colour is a tiger?',                       qTh: 'เสือมีสีอะไร?', ans: 'Orange and black stripes', ansTh: 'ลายสีส้มและดำ', emoji: '🐅' },
+                { file: 'imgi_13_1593138696_149133.jpg',   name: 'Horse',        nameTh: 'ม้า',             type: 'animal', q: 'What can people do on a horse?',                qTh: 'คนสามารถทำอะไรบนหลังม้า?', ans: 'Ride it', ansTh: 'ขี่มัน', emoji: '🐎' },
+                { file: 'imgi_14_1593138797_120575.jpg',   name: 'Rabbit',       nameTh: 'กระต่าย',         type: 'animal', q: 'What do rabbits love to eat?',                  qTh: 'กระต่ายชอบกินอะไร?', ans: 'Carrots and grass', ansTh: 'แครอทและหญ้า', emoji: '🐇' },
+                { file: 'imgi_15_1593138533_94213.jpg',    name: 'Bear',         nameTh: 'หมี',             type: 'animal', q: 'What do bears do in winter?',                   qTh: 'หมีทำอะไรในฤดูหนาว?', ans: 'Hibernate (sleep)', ansTh: 'จำศีล (นอนหลับ)', emoji: '🐻' },
+                { file: 'imgi_16_1593139520_177219.jpg',   name: 'Snail',        nameTh: 'หอยทาก',          type: 'animal', q: 'Is a snail fast or slow?',                      qTh: 'หอยทากเร็วหรือช้า?', ans: 'Very slow', ansTh: 'ช้ามาก', emoji: '🐌' },
+                { file: 'imgi_17_1593138785_118353.jpg',   name: 'Penguin',      nameTh: 'เพนกวิน',         type: 'animal', q: 'Can penguins fly?',                             qTh: 'เพนกวินบินได้ไหม?', ans: 'No, they swim', ansTh: 'บินไม่ได้ แต่ว่ายน้ำได้', emoji: '🐧' },
+                { file: 'imgi_18_1593138729_129543.jpg',   name: 'Koala',        nameTh: 'โคอาล่า',         type: 'animal', q: 'What do koalas eat?',                           qTh: 'โคอาล่ากินอะไร?', ans: 'Eucalyptus leaves', ansTh: 'ใบยูคาลิปตัส', emoji: '🐨' },
+                { file: 'imgi_19_1593139194_66987.jpg',    name: 'Jellyfish',    nameTh: 'แมงกะพรุน',       type: 'animal', q: 'Can a jellyfish sting you?',                    qTh: 'แมงกะพรุนต่อยคุณได้ไหม?', ans: 'Yes, they can', ansTh: 'ได้ (ต่อยได้)', emoji: '🪼' },
+                { file: 'imgi_20_1593138634_61196.jpg',    name: 'Frog',         nameTh: 'กบ',              type: 'animal', q: 'What sound does a frog make?',                  qTh: 'กบส่งเสียงอะไร?', ans: 'Croak croak! (or Ribbit!)', ansTh: 'อ๊บ อ๊บ!', emoji: '🐸' },
+                { file: 'imgi_21_1593138522_81963.jpg',    name: 'Bat',          nameTh: 'ค้างคาว',         type: 'animal', q: 'When do bats come out?',                        qTh: 'ค้างคาวออกมาเมื่อไหร่?', ans: 'At night (nocturnal)', ansTh: 'ในเวลากลางคืน', emoji: '🦇' },
+                { file: 'imgi_22_1593138775_116730.jpg',   name: 'Panda',        nameTh: 'แพนด้า',          type: 'animal', q: 'What do pandas eat?',                           qTh: 'แพนด้ากินอะไร?', ans: 'Bamboo', ansTh: 'ไม้ไผ่', emoji: '🐼' },
+                { file: 'imgi_23_1593139466_152540.jpg',   name: 'Crab',         nameTh: 'ปู',              type: 'animal', q: 'How many legs does a crab have?',               qTh: 'ปูมีกี่ขา?', ans: 'Ten (10) legs (including 2 claws)', ansTh: 'สิบขา (รวมก้าม 2 ข้าง)', emoji: '🦀' },
+                { file: 'imgi_24_1593138573_92207.jpg',    name: 'Crocodile',    nameTh: 'จระเข้',          type: 'animal', q: 'Where do crocodiles live?',                     qTh: 'จระเข้อาศัยอยู่ที่ไหน?', ans: 'In rivers, swamps, and lakes', ansTh: 'ในแม่น้ำ บึง และทะเลสาบ', emoji: '🐊' },
+            ] },
+        classroom: { label: 'Classroom', path: 'classroom/', items: [] },
+        clothes:   { label: 'Clothes',   path: 'clothes/',   items: [] },
+        family:    { label: 'Family',    path: 'family/',    items: [] },
+        food:      { label: 'Food',      path: 'food/',      items: [] },
+        places:    { label: 'Places',    path: 'places/',    items: [] },
+        sports:    { label: 'Sports',    path: 'sports/',    items: [] },
+        transport: { label: 'Transport', path: 'transport/', items: [] },
+        weather:   { label: 'Weather',   path: 'weather/',   items: [] },
+    };
+
+    // ─── TEXT-ONLY QUESTIONS BY TOPIC ─────────────────────────────────────
+    const textQuestions = {
+        habits: [
+            { en: "How often do you go to the shopping mall?",                         th: "คุณไปห้างสรรพสินค้าบ่อยแค่ไหน?" },
+            { en: "When did you last go to the shopping mall? What did you buy?",       th: "คุณไปห้างครั้งล่าสุดเมื่อไหร่? ซื้ออะไรมาบ้าง?" },
+            { en: "Do you prefer shopping alone or with friends?",                      th: "คุณชอบไปช้อปปิ้งคนเดียวหรือไปกับเพื่อน?" },
+            { en: "What is your favorite shop or store? Why do you like it?",           th: "ร้านโปรดของคุณคือร้านไหน? ทำไมถึงชอบ?" },
+            { en: "How often do you eat at a restaurant?",                              th: "คุณกินข้าวนอกบ้านที่ร้านอาหารบ่อยแค่ไหน?" },
+            { en: "When did you last eat outside? What did you have?",                  th: "คุณกินข้าวนอกบ้านครั้งล่าสุดเมื่อไหร่? กินอะไร?" },
+            { en: "Do you cook at home? What is something easy you can make?",          th: "คุณทำอาหารที่บ้านไหม? ทำอะไรได้บ้าง?" },
+            { en: "How often do you exercise or play sport?",                           th: "คุณออกกำลังกายหรือเล่นกีฬาบ่อยแค่ไหน?" },
+            { en: "What did you do last weekend?",                                      th: "สุดสัปดาห์ที่แล้วคุณทำอะไรบ้าง?" },
+            { en: "How often do you watch TV or videos online?",                        th: "คุณดูทีวีหรือวิดีโอออนไลน์บ่อยแค่ไหน?" },
+            { en: "What is your favorite thing to do on a Sunday?",                     th: "กิจกรรมโปรดของคุณในวันอาทิตย์คืออะไร?" },
+            { en: "How often do you meet your friends?",                                th: "คุณเจอเพื่อนบ่อยแค่ไหน?" },
+            { en: "When did you last take a trip or holiday?",                          th: "คุณไปเที่ยวหรือพักร้อนครั้งล่าสุดเมื่อไหร่?" },
+            { en: "Do you drink coffee or tea? How many cups a day?",                   th: "คุณดื่มกาแฟหรือชาไหม? วันละกี่แก้ว?" },
+            { en: "How often do you clean your room or house?",                         th: "คุณทำความสะอาดห้องหรือบ้านบ่อยแค่ไหน?" },
+            { en: "When did you last buy new clothes?",                                 th: "คุณซื้อเสื้อผ้าใหม่ครั้งล่าสุดเมื่อไหร่?" },
+            { en: "How many hours a day do you use your phone?",                        th: "คุณใช้โทรศัพท์วันละกี่ชั่วโมง?" },
+            { en: "What time do you usually wake up in the morning?",                   th: "ปกติคุณตื่นนอนกี่โมงเช้า?" },
+            { en: "How often do you go to the market or supermarket?",                  th: "คุณไปตลาดหรือซูเปอร์มาร์เก็ตบ่อยแค่ไหน?" },
+            { en: "When did you last try a new food? What was it?",                     th: "คุณลองกินอาหารใหม่ครั้งล่าสุดเมื่อไหร่? กินอะไร?" },
+            { en: "Do you have a pet? How do you take care of it every day?",           th: "คุณมีสัตว์เลี้ยงไหม? ดูแลยังไงทุกวัน?" },
+            { en: "How often do you read a book or magazine?",                          th: "คุณอ่านหนังสือหรือนิตยสารบ่อยแค่ไหน?" },
+            { en: "When did you last go to a park or outdoor place?",                   th: "คุณไปสวนสาธารณะหรือที่โล่งแจ้งครั้งล่าสุดเมื่อไหร่?" },
+            { en: "How often do you listen to music? What kind do you like?",           th: "คุณฟังเพลงบ่อยแค่ไหน? ชอบเพลงแนวไหน?" },
+            { en: "What do you usually do after dinner?",                               th: "หลังอาหารเย็นปกติคุณทำอะไร?" },
+            { en: "How often do you call or message your family?",                      th: "คุณโทรหรือส่งข้อความหาครอบครัวบ่อยแค่ไหน?" },
+            { en: "When did you last watch a movie? What was it about?",                th: "คุณดูหนังครั้งล่าสุดเมื่อไหร่? เรื่องอะไร?" },
+            { en: "How often do you go out for coffee or a snack?",                     th: "คุณออกไปดื่มกาแฟหรือกินของว่างนอกบ้านบ่อยแค่ไหน?" },
+            { en: "Do you like to go for walks? How often do you walk?",                th: "คุณชอบเดินเล่นไหม? เดินบ่อยแค่ไหน?" },
+            { en: "When did you last do something new for the first time?",             th: "คุณทำสิ่งใหม่ครั้งแรกครั้งล่าสุดเมื่อไหร่?" },
+        ],
+        pastcont: [
+            { en: "What were you doing at 8 o'clock this morning?",                        th: "ตอน 8 โมงเช้าวันนี้คุณกำลังทำอะไรอยู่?" },
+            { en: "What were you doing when the teacher walked in?",                       th: "คุณกำลังทำอะไรอยู่ตอนที่ครูเดินเข้ามา?" },
+            { en: "Were you sleeping at midnight last night?",                             th: "เมื่อคืนเที่ยงคืนคุณกำลังนอนหลับอยู่ไหม?" },
+            { en: "What was your mother doing when you left home today?",                  th: "แม่ของคุณกำลังทำอะไรอยู่ตอนที่คุณออกจากบ้านวันนี้?" },
+            { en: "Were you listening to music while you were coming to school?",          th: "คุณกำลังฟังเพลงอยู่ขณะที่คุณมาโรงเรียนไหม?" },
+            { en: "What were your friends doing at lunchtime yesterday?",                  th: "เมื่อวานตอนเที่ยงเพื่อนๆ ของคุณกำลังทำอะไรอยู่?" },
+            { en: "Was it raining when you woke up this morning?",                         th: "ฝนกำลังตกอยู่ไหมตอนที่คุณตื่นนอนเมื่อเช้า?" },
+            { en: "What were you eating at 6 p.m. yesterday?",                             th: "เมื่อวานตอน 6 โมงเย็นคุณกำลังกินอะไรอยู่?" },
+            { en: "Were you watching TV when your phone rang last time?",                  th: "คุณกำลังดูทีวีอยู่ไหมตอนที่โทรศัพท์ดังครั้งล่าสุด?" },
+            { en: "What was your father doing at 9 p.m. last night?",                      th: "เมื่อคืน 3 ทุ่มพ่อของคุณกำลังทำอะไรอยู่?" },
+            { en: "Were you studying or playing games at 10 p.m. last night?",             th: "เมื่อคืน 4 ทุ่มคุณกำลังเรียนหรือเล่นเกมอยู่?" },
+            { en: "What were you wearing when you arrived at school today?",               th: "คุณกำลังใส่อะไรอยู่ตอนที่มาถึงโรงเรียนวันนี้?" },
+            { en: "Was your best friend sitting next to you in the last class?",           th: "เพื่อนสนิทของคุณกำลังนั่งข้างคุณในคาบที่แล้วไหม?" },
+            { en: "What were you thinking about before this class started?",               th: "คุณกำลังคิดเรื่องอะไรอยู่ก่อนที่คาบนี้จะเริ่ม?" },
+            { en: "Were you reading anything interesting last weekend?",                   th: "สุดสัปดาห์ที่แล้วคุณกำลังอ่านอะไรที่น่าสนใจอยู่ไหม?" },
+            { en: "What was happening outside when you looked out the window today?",      th: "วันนี้ตอนที่คุณมองออกไปนอกหน้าต่างมีอะไรกำลังเกิดขึ้นอยู่?" },
+            { en: "Were you cooking or ordering food for dinner last night?",              th: "เมื่อคืนคุณกำลังทำอาหารหรือสั่งอาหารเย็น?" },
+            { en: "What were the other students doing while the teacher was talking?",     th: "นักเรียนคนอื่นกำลังทำอะไรอยู่ขณะที่ครูพูด?" },
+            { en: "Was your pet doing anything funny recently?",                           th: "ช่วงนี้สัตว์เลี้ยงของคุณกำลังทำอะไรตลกๆ อยู่ไหม?" },
+            { en: "What were you doing at this time yesterday?",                           th: "เมื่อวานเวลานี้คุณกำลังทำอะไรอยู่?" },
+            { en: "Were you talking to anyone on the phone last evening?",                 th: "เมื่อวานตอนเย็นคุณกำลังคุยโทรศัพท์กับใครอยู่ไหม?" },
+            { en: "What was your teacher doing when you arrived at class?",                th: "ครูกำลังทำอะไรอยู่ตอนที่คุณมาถึงห้องเรียน?" },
+            { en: "Were you carrying anything heavy when you came to school?",             th: "คุณกำลังถืออะไรหนักๆ อยู่ไหมตอนที่มาโรงเรียน?" },
+            { en: "What were people doing at the market when you last visited?",           th: "ครั้งล่าสุดที่คุณไปตลาดผู้คนกำลังทำอะไรอยู่?" },
+            { en: "Was anyone waiting for you when you got home yesterday?",               th: "เมื่อวานมีใครกำลังรอคุณอยู่ไหมตอนที่คุณกลับถึงบ้าน?" },
+            { en: "What were you drinking while you were doing your homework?",            th: "คุณกำลังดื่มอะไรอยู่ขณะที่ทำการบ้าน?" },
+            { en: "Were your classmates laughing about something in the last break?",      th: "เพื่อนร่วมชั้นกำลังหัวเราะเรื่องอะไรอยู่ในช่วงพักที่แล้ว?" },
+            { en: "What was playing on TV when you turned it on last?",                    th: "ตอนที่คุณเปิดทีวีครั้งล่าสุดมีอะไรกำลังฉายอยู่?" },
+            { en: "Were you using your phone while you were eating dinner?",               th: "คุณกำลังใช้โทรศัพท์อยู่ไหมขณะที่กินข้าวเย็น?" },
+            { en: "What were you doing when the electricity went out last time?",          th: "ครั้งล่าสุดที่ไฟดับคุณกำลังทำอะไรอยู่?" },
+            { en: "Was the sun shining when you left home this morning?",                  th: "แดดกำลังออกอยู่ไหมตอนที่คุณออกจากบ้านเช้านี้?" },
+            { en: "What were you and your family doing at dinner time yesterday?",         th: "เมื่อวานตอนเวลาอาหารเย็นคุณและครอบครัวกำลังทำอะไรอยู่?" },
+            { en: "Were you walking or riding to school this morning?",                    th: "เช้านี้คุณกำลังเดินหรือขี่รถมาโรงเรียน?" },
+            { en: "What were the birds doing when you were waiting outside?",              th: "นกกำลังทำอะไรอยู่ตอนที่คุณกำลังรออยู่ข้างนอก?" },
+            { en: "Was the shop closing when you arrived there last time?",                th: "ร้านกำลังปิดอยู่ไหมตอนที่คุณไปถึงครั้งล่าสุด?" },
+            { en: "What were you dreaming about last night?",                              th: "เมื่อคืนคุณกำลังฝันเรื่องอะไรอยู่?" },
+            { en: "Were your neighbours making noise last weekend?",                       th: "สุดสัปดาห์ที่แล้วเพื่อนบ้านกำลังทำเสียงดังอยู่ไหม?" },
+            { en: "What was your sibling doing while you were getting ready for school?",  th: "พี่/น้องของคุณกำลังทำอะไรอยู่ขณะที่คุณเตรียมตัวไปโรงเรียน?" },
+            { en: "Were you feeling tired while you were sitting in class this morning?",  th: "คุณกำลังรู้สึกเหนื่อยอยู่ไหมขณะที่นั่งเรียนเช้านี้?" },
+            { en: "What was the weather doing when you looked outside at lunch?",          th: "ตอนเที่ยงพอมองออกไปข้างนอกอากาศเป็นยังไงอยู่?" },
+            { en: "Were you helping anyone with something yesterday?",                     th: "เมื่อวานคุณกำลังช่วยใครทำอะไรอยู่ไหม?" },
+            { en: "What was happening in the hallway when the bell rang?",                 th: "มีอะไรกำลังเกิดขึ้นในทางเดินตอนที่กระดิ่งดัง?" },
+        ],
+    };
+
+    // ─── BUILD POOLS ──────────────────────────────────────────────────────
+    function getAllImages(setKey) {
+        let pool = [];
+        if (setKey === 'all') {
+            for (const key of Object.keys(imageCategories)) {
+                const cat = imageCategories[key];
+                for (const item of cat.items) {
+                    const base = cat.basePath !== undefined ? cat.basePath : IMG_BASE;
+                    pool.push({ ...item, imgSrc: base + cat.path + item.file, category: cat.label });
+                }
+            }
+        } else {
+            const cat = imageCategories[setKey];
+            if (cat) {
+                for (const item of cat.items) {
+                    const base = cat.basePath !== undefined ? cat.basePath : IMG_BASE;
+                    pool.push({ ...item, imgSrc: base + cat.path + item.file, category: cat.label });
+                }
+            }
+        }
+        return pool;
+    }
+
+    function getTextPool(topicKey) {
+        if (topicKey === 'all') {
+            let pool = [];
+            for (const key of Object.keys(textQuestions)) {
+                pool = pool.concat(textQuestions[key].map(q => ({ ...q, topic: key })));
+            }
+            return pool;
+        }
+        return (textQuestions[topicKey] || []).map(q => ({ ...q, topic: topicKey }));
+    }
+
+    let imageDeck = [];
+    let textDeck = [];
+
+    function getNextImage() {
+        if (imageDeck.length === 0) {
+            imageDeck = getAllImages(selectedImageSet);
+            imageDeck.sort(() => Math.random() - 0.5);
+        }
+        if (imageDeck.length === 0) return null;
+        return imageDeck.pop();
+    }
+
+    function getNextText() {
+        if (textDeck.length === 0) {
+            textDeck = getTextPool(selectedTopic === 'jobs' ? 'all' : selectedTopic);
+            textDeck.sort(() => Math.random() - 0.5);
+        }
+        if (textDeck.length === 0) return null;
+        return textDeck.pop();
+    }
+
+    const topicLabels = { jobs: '💼 Jobs', habits: '🏠 Everyday Habits', pastcont: '⏪ Past Continuous', all: '🎲 All Topics' };
+
+    // ─── SELECTORS ────────────────────────────────────────────────────────
+    function setTopic(t) {
+        selectedTopic = t;
+        textDeck = [];
+        imageDeck = [];
+        document.querySelectorAll('#topic-bar .sel-btn').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+        // Show/hide difficulty bar (only relevant for image questions)
+        updateDiffBarVisibility();
+    }
+
+    function setImageSet(s) {
+        selectedImageSet = s;
+        imageDeck = [];
+        document.querySelectorAll('#image-bar .sel-btn').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+    }
+
+    function setDifficulty(mode) {
+        difficulty = mode;
+        document.getElementById('btn-easy').classList.toggle('active', mode === 'easy');
+        document.getElementById('btn-hard').classList.toggle('active', mode === 'hard');
+    }
+
+    function updateDiffBarVisibility() {
+        const hasImages = getAllImages(selectedImageSet).length > 0;
+        document.getElementById('diff-bar').style.display = hasImages ? 'flex' : 'none';
+    }
+
+    // ─── AUDIO ────────────────────────────────────────────────────────────
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSound(type) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        if (type === 'correct') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(523, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(659, audioCtx.currentTime + 0.15);
+        } else {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+        }
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+    }
+
+    let columnItems = []; // Array of 7 items mapped to columns
+    let textDeck = [];
+    let imageDeck = [];
+
+    function setupColumns() {
+        const nums = document.querySelectorAll('.col-num');
+        
+        if (selectedTopic === 'habits' || selectedTopic === 'pastcont') {
+            columnItems = [];
+            nums.forEach((el, c) => {
+                const emoji = selectedTopic === 'habits' ? '🏠' : '⏪';
+                el.innerHTML = `${c + 1}<br>${emoji}`;
+            });
+            return;
+        }
+
+        const imagePool = getAllImages(selectedImageSet);
+        if (imagePool.length >= 7) {
+            // Shuffle and choose 7 unique items
+            const indices = imagePool.map((_, i) => i).sort(() => Math.random() - 0.5);
+            columnItems = indices.slice(0, 7).map(idx => imagePool[idx]);
+            nums.forEach((el, c) => {
+                const item = columnItems[c];
+                const emoji = item.emoji || (item.type === 'animal' ? '🐾' : '💼');
+                el.innerHTML = `${c + 1}<br>${emoji}`;
+            });
+        } else {
+            columnItems = [];
+            nums.forEach((el, c) => {
+                el.innerHTML = `${c + 1}`;
+            });
+        }
+    }
+
+    function getNextImage() {
+        if (imageDeck.length === 0) {
+            imageDeck = getAllImages(selectedImageSet);
+            imageDeck.sort(() => Math.random() - 0.5);
+        }
+        if (imageDeck.length === 0) return null;
+        return imageDeck.pop();
+    }
+
+    function getNextText() {
+        if (textDeck.length === 0) {
+            textDeck = getTextPool(selectedTopic === 'jobs' ? 'all' : selectedTopic);
+            textDeck.sort(() => Math.random() - 0.5);
+        }
+        if (textDeck.length === 0) return null;
+        return textDeck.pop();
+    }
+
+    const topicLabels = { jobs: '💼 Jobs', habits: '🏠 Everyday Habits', pastcont: '⏪ Past Continuous', all: '🎲 All Topics' };
+
+    // ─── SELECTORS ────────────────────────────────────────────────────────
+    function setTopic(t) {
+        selectedTopic = t;
+        textDeck = [];
+        imageDeck = [];
+        document.querySelectorAll('#topic-bar .sel-btn').forEach(b => b.classList.remove('active'));
+        if (event && event.target) event.target.classList.add('active');
+        // Show/hide difficulty bar (only relevant for image questions)
+        updateDiffBarVisibility();
+        setupColumns();
+    }
+
+    function setImageSet(s) {
+        selectedImageSet = s;
+        imageDeck = [];
+        document.querySelectorAll('#image-bar .sel-btn').forEach(b => b.classList.remove('active'));
+        if (event && event.target) event.target.classList.add('active');
+        setupColumns();
+    }
+
+    function setDifficulty(mode) {
+        difficulty = mode;
+        document.getElementById('btn-easy').classList.toggle('active', mode === 'easy');
+        document.getElementById('btn-hard').classList.toggle('active', mode === 'hard');
+    }
+
+    function updateDiffBarVisibility() {
+        const hasImages = getAllImages(selectedImageSet).length > 0;
+        document.getElementById('diff-bar').style.display = hasImages ? 'flex' : 'none';
+    }
+
+    // ─── AUDIO ────────────────────────────────────────────────────────────
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSound(type) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        if (type === 'correct') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(523, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(659, audioCtx.currentTime + 0.15);
+        } else {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+        }
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+    }
+
+    // ─── BOARD INIT ───────────────────────────────────────────────────────
+    function init() {
+        const board = document.getElementById('board');
+        for (let c = 0; c < COLS; c++) {
+            const colDiv = document.createElement('div');
+            colDiv.className = 'column';
+            colDiv.onclick = () => handleColumnClick(c);
+            for (let r = 0; r < ROWS; r++) {
+                const slot = document.createElement('div');
+                slot.className = 'slot';
+                slot.id = `slot-${c}-${r}`;
+                colDiv.appendChild(slot);
+            }
+            board.appendChild(colDiv);
+        }
+        updateDiffBarVisibility();
+        setupColumns();
+    }
+
+    function updateColumnNumbers() {
+        const nums = document.querySelectorAll('.col-num');
+        nums.forEach((el, c) => {
+            if (boardState[c].indexOf(null) === -1) {
+                el.classList.add('full');
+            } else {
+                el.classList.remove('full');
+            }
+        });
+    }
+
+    function handleColumnClick(c) {
+        if (boardState[c].indexOf(null) === -1) return;
+        activeCol = c;
+        translationVisible = false;
+
+        if (columnItems.length === 7) {
+            showImageQuestionForItem(columnItems[c]);
+        } else {
+            showTextQuestion(c);
+        }
+    }
+
+    function showImageQuestionForItem(img) {
+        const iconEl = document.getElementById('question-icon');
+        iconEl.style.display = 'block';
+        document.getElementById('q-image').src = img.imgSrc;
+
+        document.getElementById('q-topic-label').innerText = img.category;
+
+        if (difficulty === 'easy') {
+            if (img.type === 'animal') {
+                document.getElementById('q-text').innerText = 'What animal is this?';
+                const article = /^[aeiou]/i.test(img.name) ? 'an' : 'a';
+                currentTranslation = "It's " + article + ' ' + img.name + ' — ' + img.nameTh;
+            } else {
+                const pronoun = img.g === 'he' ? 'he' : 'she';
+                const Pronoun = img.g === 'he' ? 'He' : 'She';
+                document.getElementById('q-text').innerText = 'What does ' + pronoun + ' do?';
+                const article = /^[aeiou]/i.test(img.name) ? 'an' : 'a';
+                currentTranslation = Pronoun + "'s " + article + ' ' + img.name + ' — ' + img.nameTh;
+            }
+        } else {
+            document.getElementById('q-text').innerText = img.q;
+            currentTranslation = "Answer: " + img.ans + " (" + img.ansTh + ")\n\nQuestion: " + img.qTh;
+        }
+
+        document.getElementById('q-translation').innerText = '';
+        document.getElementById('translate-btn').innerText = difficulty === 'easy'
+            ? '🇹🇭 Show Answer'
+            : '🇹🇭 Show Answer & Translation';
+
+        showBadge();
+        document.getElementById('overlay').style.display = 'flex';
+    }
+
+    function showTextQuestion(c) {
+        const q = getNextText();
+        if (!q) return;
+
+        document.getElementById('question-icon').style.display = 'none';
+        const label = q.topic === 'habits' ? '🏠 Everyday Habits' : '⏪ Past Continuous';
+        document.getElementById('q-topic-label').innerText = label;
+        document.getElementById('q-text').innerText = q.en;
+        currentTranslation = q.th;
+
+        document.getElementById('q-translation').innerText = '';
+        document.getElementById('translate-btn').innerText = '🇹🇭 Show Thai Translation';
+
+        showBadge();
+        document.getElementById('overlay').style.display = 'flex';
+    }
+
+    function showBadge() {
+        const badge = document.getElementById('player-badge');
+        badge.innerText = currentPlayer === 1 ? '🔴 Red\'s Question' : '🟡 Yellow\'s Question';
+        badge.className = 'player-badge ' + (currentPlayer === 1 ? 'badge-red' : 'badge-yellow');
+    }
+
+    function toggleTranslation() {
+        translationVisible = !translationVisible;
+        document.getElementById('q-translation').innerText = translationVisible ? currentTranslation : '';
+        const hideLabel = difficulty === 'easy' ? '🙈 Hide Answer' : '🙈 Hide Answer & Translation';
+        const showLabel = difficulty === 'easy' ? '🇹🇭 Show Answer' : '🇹🇭 Show Answer & Translation';
+        document.getElementById('translate-btn').innerText = translationVisible ? hideLabel : showLabel;
+    }
+
+    function handleJudge(isCorrect) {
+        document.getElementById('overlay').style.display = 'none';
+        if (!isCorrect) {
+            playSound('wrong');
+            return;
+        }
+        playSound('correct');
+        const r = boardState[activeCol].indexOf(null);
+        boardState[activeCol][r] = currentPlayer;
+        const slot = document.getElementById(`slot-${activeCol}-${r}`);
+        slot.style.setProperty('--drop-y', `-${(ROWS - r) * 74}px`);
+        slot.className = `slot ${currentPlayer === 1 ? 'red' : 'yellow'} dropping`;
+        slot.addEventListener('animationend', () => slot.classList.remove('dropping'), { once: true });
+        updateColumnNumbers();
+
+        if (checkWin(activeCol, r)) {
+            setTimeout(() => showWin(currentPlayer), 300);
+            return;
+        }
+
+        currentPlayer = currentPlayer === 1 ? 2 : 1;
+        updateStatus();
+    }
+
+    function updateStatus() {
+        const s = document.getElementById('status');
+        s.innerText = currentPlayer === 1 ? '🔴 Red Player\'s Turn' : '🟡 Yellow Player\'s Turn';
+        s.className = `status-bar ${currentPlayer === 1 ? 'p1-turn' : 'p2-turn'}`;
+    }
+
+    function showWin(player) {
+        const title = document.getElementById('win-title');
+        title.innerText = player === 1 ? '🎉 Red Wins!' : '🎉 Yellow Wins!';
+        title.style.color = player === 1 ? '#ff4757' : '#ffa502';
+        document.getElementById('win-overlay').style.display = 'flex';
+    }
+
+    function checkWin(c, r) {
+        const p = boardState[c][r];
+        const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+        for (let [dc, dr] of dirs) {
+            let count = 1;
+            for (let i = 1; i < 4; i++) { if (boardState[c+dc*i]?.[r+dr*i] === p) count++; else break; }
+            for (let i = 1; i < 4; i++) { if (boardState[c-dc*i]?.[r-dr*i] === p) count++; else break; }
+            if (count >= 4) return true;
+        }
+        return false;
+    }
+
+    init();
+    function htpToggleLang(btn) {
+        const toTh = btn.textContent.trim() === 'Thai';
+        btn.closest('.how-to-play').querySelectorAll('.htp-text').forEach(el => el.textContent = el.dataset[toTh ? 'th' : 'en']);
+        btn.textContent = toTh ? 'English' : 'Thai';
+    }
+</script>
+</body>
+</html>

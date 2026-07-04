@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect 4 – How Often?</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --p1: #ff4757;
+            --p2: #ffa502;
+            --board: #2563eb;
+            --board-shadow: #1d4ed8;
+            --bg: #f4f7fe;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: var(--bg);
+            margin: 0;
+            padding: 20px 10px 40px;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-family: 'Fredoka One', cursive;
+            font-size: 2.2rem;
+            color: #1e3a8a;
+            margin: 0 0 6px;
+            letter-spacing: 1px;
+        }
+
+        .subtitle {
+            font-size: 0.95rem;
+            color: #4b5563;
+            margin-bottom: 14px;
+            font-weight: 700;
+        }
+
+        /* ── FREQUENCY SCALE ──────────────────────────────────────────────── */
+        .freq-scale {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            margin-bottom: 18px;
+            border-radius: 50px;
+            overflow: hidden;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+            border: 3px solid var(--board);
+            font-family: 'Fredoka One', cursive;
+            font-size: 0.95rem;
+        }
+        .fs-item {
+            padding: 8px 14px;
+            background: white;
+            color: #888;
+            border-right: 2px solid #e2e8f0;
+            white-space: nowrap;
+        }
+        .fs-item:last-child { border-right: none; }
+        .fs-item.hi  { background: #e8f0fe; color: #2563eb; font-size: 1rem; }
+        .fs-arrow { padding: 8px 6px; background: white; color: #ccc; font-size: 0.8rem; border-right: 2px solid #e2e8f0; }
+
+        /* ── STATUS ───────────────────────────────────────────────────────── */
+        .status-bar {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.6rem;
+            padding: 10px 36px;
+            border-radius: 50px;
+            margin-bottom: 18px;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+            transition: all 0.3s;
+        }
+        .p1-turn { color: var(--p1); border: 4px solid var(--p1); }
+        .p2-turn { color: var(--p2); border: 4px solid var(--p2); }
+
+        /* ── BOARD ────────────────────────────────────────────────────────── */
+        .board {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background: var(--board);
+            padding: 12px;
+            border-radius: 20px;
+            gap: 8px;
+            box-shadow: 0 10px 0 var(--board-shadow), 0 12px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .board-wrapper { display: flex; flex-direction: column; align-items: center; }
+
+        .column-numbers {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            padding: 0 12px;
+            margin-bottom: 6px;
+            width: 100%;
+        }
+        .col-num {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.6rem;
+            color: #1e3a8a;
+            text-align: center;
+            background: white;
+            border-radius: 12px;
+            padding: 4px 0;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+            transition: transform 0.15s, background 0.15s;
+            cursor: pointer;
+            user-select: none;
+        }
+        .col-num:hover { background: #e8f0fe; transform: translateY(-3px); }
+        .col-num.full  { color: #ccc; background: #f0f0f0; cursor: not-allowed; transform: none; }
+
+        .column {
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 8px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 12px;
+            transition: background 0.2s;
+        }
+        .column:hover { background: rgba(255,255,255,0.18); }
+
+        .slot {
+            width: 66px;
+            height: 66px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            border: 3px solid rgba(0,0,0,0.08);
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.15);
+        }
+        .slot.red    { background: var(--p1) !important; box-shadow: 0 0 12px rgba(255,71,87,0.6),  inset 0 -3px 6px rgba(0,0,0,0.2); }
+        .slot.yellow { background: var(--p2) !important; box-shadow: 0 0 12px rgba(255,165,2,0.6),  inset 0 -3px 6px rgba(0,0,0,0.2); }
+
+        @keyframes pieceDrop {
+            from { transform: translateY(var(--drop-y)); }
+            to   { transform: translateY(0); }
+        }
+        .slot.dropping { animation: pieceDrop 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+
+        /* ── OVERLAY ──────────────────────────────────────────────────────── */
+        #overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(40,10,0,0.86);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        #q-card {
+            background: white;
+            padding: 30px 36px 28px;
+            border-radius: 28px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            border: 6px solid var(--board);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.7); opacity: 0; }
+            to   { transform: scale(1);   opacity: 1; }
+        }
+
+        .player-badge {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1rem;
+            padding: 4px 16px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 12px;
+            color: white;
+        }
+        .badge-red    { background: var(--p1); }
+        .badge-yellow { background: var(--p2); }
+
+        .q-emoji {
+            font-size: 5.5rem;
+            display: block;
+            margin: 4px 0 10px;
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%,100% { transform: translateY(0); }
+            45%     { transform: translateY(-10px); }
+            65%     { transform: translateY(-5px); }
+        }
+
+        #q-text {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.8rem;
+            color: #1e3a8a;
+            margin-bottom: 18px;
+            line-height: 1.3;
+        }
+
+        /* chips row */
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 22px;
+        }
+        .chip {
+            font-family: 'Fredoka One', cursive;
+            font-size: 0.95rem;
+            padding: 6px 16px;
+            border-radius: 20px;
+            background: #e8f0fe;
+            color: #2563eb;
+            border: 2px solid #bfdbfe;
+            user-select: none;
+        }
+        .chip.never { background: #f5f5f5; color: #999; border-color: #ddd; }
+
+        .judge-btns { display: flex; gap: 16px; justify-content: center; }
+
+        .btn {
+            padding: 14px 28px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            font-weight: 800;
+            font-family: 'Nunito', sans-serif;
+            transition: transform 0.15s, box-shadow 0.15s;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+        }
+        .btn:hover  { transform: translateY(-2px); box-shadow: 0 6px 0 rgba(0,0,0,0.15); }
+        .btn:active { transform: translateY(2px);  box-shadow: 0 2px 0 rgba(0,0,0,0.15); }
+        .btn-yes { background: var(--board); color: white; }
+        .btn-no  { background: #e0e0e0; color: #555; }
+
+        /* ── LANG TOGGLE & CHALLENGE STYLES ───────────────────────────────── */
+        .htp-lang-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            margin-bottom: 12px;
+            background: #f1f2f6;
+            padding: 3px;
+            border-radius: 30px;
+            border: 1px solid #e4e7eb;
+        }
+        .lang-btn {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 5px 10px;
+            font-family: 'Fredoka One', cursive;
+            font-size: 0.75rem;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #7f8c8d;
+        }
+        .lang-btn.active {
+            background: var(--board);
+            color: white;
+            box-shadow: 0 2px 6px rgba(255,140,0,0.3);
+        }
+        .btn-challenge {
+            background: #6c5ce7;
+            color: white;
+            font-size: 0.95rem;
+            padding: 10px 20px;
+            border-radius: 14px;
+            margin-bottom: 18px;
+            border: none;
+            font-family: 'Fredoka One', cursive;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #4a3eb8;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .btn-challenge:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 #4a3eb8;
+        }
+        .btn-challenge:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #4a3eb8;
+        }
+        .btn-challenge.btn-normal-mode {
+            background: #2ed573;
+            box-shadow: 0 4px 0 #219653;
+        }
+        .btn-challenge.btn-normal-mode:hover {
+            box-shadow: 0 6px 0 #219653;
+        }
+        .btn-challenge.btn-normal-mode:active {
+            box-shadow: 0 2px 0 #219653;
+        }
+        .btn-reveal {
+            background: #f1f2f6;
+            color: #57606f;
+            border: 2px dashed #ced6e0;
+            font-size: 0.9rem;
+            padding: 8px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 700;
+            font-family: 'Nunito', sans-serif;
+            transition: background 0.2s;
+        }
+        .btn-reveal:hover {
+            background: #e4e7eb;
+        }
+        .trivia-answer {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #2ed573;
+            margin-top: 10px;
+            font-family: 'Fredoka One', cursive;
+            animation: popIn 0.25s ease-out;
+        }
+
+        /* ── WIN BANNER (floats above board, board stays visible) ─────────── */
+        #win-overlay {
+            position: fixed;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            z-index: 2000;
+        }
+        #win-overlay.show { display: block; }
+        #win-card {
+            background: white;
+            padding: 24px 44px 20px;
+            border-radius: 26px;
+            text-align: center;
+            border: 5px solid var(--board);
+            box-shadow: 0 12px 50px rgba(0,0,0,0.35);
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            white-space: nowrap;
+        }
+        #win-card h2 { font-family: 'Fredoka One', cursive; font-size: 2.4rem; margin: 0 0 6px; }
+        #win-card p  { font-size: 1.05rem; color: #555; margin-bottom: 14px; }
+        .win-icons   { font-size: 1.9rem; margin-bottom: 12px; }
+        .btn-restart { background: var(--board); color: white; padding: 12px 32px; font-size: 1.05rem; }
+
+        /* ── WIN SLOT HIGHLIGHT ───────────────────────────────────────────── */
+        .slot.win {
+            border: 4px solid gold !important;
+            animation: winPulse 0.7s ease-in-out infinite alternate;
+            z-index: 1;
+            position: relative;
+        }
+        @keyframes winPulse {
+            from { box-shadow: 0 0 10px 3px gold, inset 0 -3px 6px rgba(0,0,0,0.2); transform: scale(1); }
+            to   { box-shadow: 0 0 28px 10px gold, inset 0 -3px 6px rgba(0,0,0,0.2); transform: scale(1.12); }
+        }
+
+        /* ── HOW TO PLAY ──────────────────────────────────────────────────── */
+        .how-to-play {
+            position: fixed; left: 16px; top: 50%; transform: translateY(-50%);
+            background: white; border-radius: 20px; padding: 18px 16px; width: 172px;
+            box-shadow: 0 6px 28px rgba(0,0,0,0.14); border: 3px solid var(--board);
+            z-index: 100;
+        }
+        .htp-title {
+            font-family: 'Fredoka One', cursive; font-size: 1rem; color: var(--board);
+            text-align: center; margin-bottom: 12px; border-bottom: 2px solid var(--board); padding-bottom: 8px;
+        }
+        .htp-step {
+            display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px;
+            font-size: 0.78rem; font-weight: 700; color: #2c3e50; line-height: 1.35;
+        }
+        .htp-num {
+            background: var(--board); color: white; border-radius: 50%;
+            width: 20px; height: 20px; display: flex; align-items: center;
+            justify-content: center; font-family: 'Fredoka One', cursive;
+            font-size: 0.8rem; flex-shrink: 0;
+        }
+        .htp-mini-board {
+            display: grid; grid-template-columns: repeat(4, 14px); gap: 3px;
+            background: var(--board); padding: 4px; border-radius: 6px;
+            margin: 8px auto 4px; width: fit-content;
+        }
+        .htp-dot   { width: 14px; height: 14px; border-radius: 50%; background: rgba(255,255,255,0.25); }
+        .htp-dot.r { background: #ff4757; }
+        .htp-dot.y { background: #ffa502; }
+        .htp-legend { display: flex; gap: 8px; justify-content: center; margin-top: 10px; font-size: 0.75rem; font-weight: 800; }
+
+        /* ── TEAMS PANEL ──────────────────────────────────────────────────── */
+        .teams-panel {
+            position: fixed; right: 16px; top: 50%; transform: translateY(-50%);
+            background: white; border-radius: 20px; padding: 18px 16px; width: 190px;
+            box-shadow: 0 6px 28px rgba(0,0,0,0.14); border: 3px solid var(--board);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .teams-title {
+            font-family: 'Fredoka One', cursive; font-size: 1rem; color: var(--board);
+            text-align: center; margin-bottom: 4px; border-bottom: 2px solid var(--board); padding-bottom: 8px;
+        }
+        .team-group {
+            display: flex; flex-direction: column; gap: 4px;
+        }
+        .team-label {
+            font-family: 'Fredoka One', cursive; font-size: 0.85rem; font-weight: 700;
+            display: flex; align-items: center; gap: 4px;
+        }
+        .team-label.red { color: var(--p1); }
+        .team-label.yellow { color: #cc8400; }
+        .team-input {
+            width: 100%; height: 80px; font-family: 'Nunito', sans-serif; font-size: 0.85rem;
+            border-radius: 10px; padding: 8px; resize: none; outline: none; transition: all 0.2s;
+            border: 2px solid #ccc;
+        }
+        .team-input.red { border-color: #ffccd0; background: #fff5f6; }
+        .team-input.red:focus { border-color: var(--p1); box-shadow: 0 0 6px rgba(255,71,87,0.25); }
+        .team-input.yellow { border-color: #ffe8cc; background: #fffaf0; }
+        .team-input.yellow:focus { border-color: var(--p2); box-shadow: 0 0 6px rgba(255,165,2,0.35); }
+
+        /* ── RESPONSIVE LAYOUTS ───────────────────────────────────────────── */
+        @media (max-width: 1100px) {
+            .panels-container {
+                display: flex;
+                flex-direction: row;
+                justify-content: center;
+                align-items: stretch;
+                gap: 20px;
+                margin-top: 30px;
+                width: 100%;
+                max-width: 600px;
+            }
+            .how-to-play, .teams-panel {
+                position: static;
+                transform: none;
+                flex: 1;
+                width: auto;
+            }
+        }
+
+        @media (max-width: 560px) {
+            .slot { width: 40px; height: 40px; }
+            .board { gap: 5px; padding: 8px; }
+            #q-text { font-size: 1.4rem; }
+            .freq-scale { font-size: 0.78rem; }
+            .fs-item { padding: 6px 8px; }
+            .panels-container {
+                flex-direction: column;
+                align-items: center;
+                max-width: 320px;
+            }
+            .how-to-play, .teams-panel {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<h1 id="page-title">📅 How Often?</h1>
+<p id="page-subtitle" class="subtitle">Answer and Connect 4 to win!</p>
+
+<!-- Frequency scale reference bar -->
+<div class="freq-scale">
+    <div class="fs-item hi" id="fs-never">Never</div>
+    <div class="fs-arrow">→</div>
+    <div class="fs-item" id="fs-sometimes">Sometimes</div>
+    <div class="fs-arrow">→</div>
+    <div class="fs-item" id="fs-once-week">Once a week</div>
+    <div class="fs-arrow">→</div>
+    <div class="fs-item" id="fs-every-day">Every day</div>
+    <div class="fs-arrow">→</div>
+    <div class="fs-item hi" id="fs-always">Always!</div>
+</div>
+
+<div id="status" class="status-bar p1-turn">🔴 Red Player's Turn</div>
+
+<div class="board-wrapper">
+    <div class="column-numbers" id="col-nums">
+        <div class="col-num" onclick="handleColumnClick(0)">1</div>
+        <div class="col-num" onclick="handleColumnClick(1)">2</div>
+        <div class="col-num" onclick="handleColumnClick(2)">3</div>
+        <div class="col-num" onclick="handleColumnClick(3)">4</div>
+        <div class="col-num" onclick="handleColumnClick(4)">5</div>
+        <div class="col-num" onclick="handleColumnClick(5)">6</div>
+        <div class="col-num" onclick="handleColumnClick(6)">7</div>
+    </div>
+    <div class="board" id="board"></div>
+</div>
+
+<!-- Question Overlay -->
+<div id="overlay">
+    <div id="q-card">
+        <div id="player-badge" class="player-badge badge-red">🔴 Red's Turn</div>
+        <span class="q-emoji" id="q-emoji">🎮</span>
+        <div id="q-text">How often do you play games?</div>
+        
+        <button id="btn-challenge-toggle" class="btn-challenge" onclick="toggleQuestionDifficulty()">🔥 Harder Question</button>
+        
+        <div class="chips">
+            <span class="chip never">Never</span>
+            <span class="chip">Sometimes</span>
+            <span class="chip">Once a week</span>
+            <span class="chip">Twice a week</span>
+            <span class="chip">3× a week</span>
+            <span class="chip">Every day</span>
+            <span class="chip">Always!</span>
+        </div>
+
+        <div id="trivia-answer-box" style="display: none; margin-bottom: 15px;">
+            <button id="btn-reveal-answer" class="btn-reveal" onclick="toggleTriviaAnswer()">👁️ Show Answer</button>
+            <div id="trivia-answer-text" class="trivia-answer" style="display: none;">Answer: Every 4 years</div>
+        </div>
+
+        <div class="judge-btns">
+            <button class="btn btn-no"  onclick="handleJudge(false)">❌ Try Again</button>
+            <button class="btn btn-yes" onclick="handleJudge(true)">✅ Good answer!</button>
+        </div>
+    </div>
+</div>
+
+<!-- Win Banner (board stays visible below) -->
+<div id="win-overlay">
+    <div id="win-card">
+        <h2 id="win-title">🎉 Red Wins!</h2>
+        <p>Amazing — well done! 🌟</p>
+        <div class="win-icons">🏆 📅 ⭐</div>
+        <button class="btn btn-restart" onclick="location.reload()">🔄 Play Again</button>
+    </div>
+</div>
+
+<div class="panels-container">
+    <div class="how-to-play">
+        <div class="htp-lang-toggle">
+            <button class="lang-btn active" id="lang-en" onclick="setLanguage('en')">EN</button>
+            <button class="lang-btn" id="lang-vi" onclick="setLanguage('vi')">VI</button>
+        </div>
+        <div class="htp-title" id="htp-title">📖 How to Play</div>
+        <div class="htp-step"><div class="htp-num">1</div><div id="htp-step-1">Pick a column (1–7)</div></div>
+        <div class="htp-step"><div class="htp-num">2</div><div id="htp-step-2">Say HOW OFTEN you do it!</div></div>
+        <div class="htp-step"><div class="htp-num">3</div><div id="htp-step-3">Good answer = piece drops!</div></div>
+        <div class="htp-step"><div class="htp-num">4</div><div id="htp-step-4">Connect 4 in a row to win!</div></div>
+        <div class="htp-mini-board">
+            <div class="htp-dot"></div><div class="htp-dot"></div><div class="htp-dot r"></div><div class="htp-dot"></div>
+            <div class="htp-dot"></div><div class="htp-dot r"></div><div class="htp-dot y"></div><div class="htp-dot"></div>
+            <div class="htp-dot r"></div><div class="htp-dot y"></div><div class="htp-dot y"></div><div class="htp-dot"></div>
+            <div class="htp-dot r"></div><div class="htp-dot r"></div><div class="htp-dot r"></div><div class="htp-dot r"></div>
+        </div>
+        <div class="htp-legend"><span id="legend-red">🔴 Red</span><span id="legend-yellow">🟡 Yellow</span></div>
+    </div>
+
+    <div class="teams-panel">
+        <div class="teams-title" id="teams-title">👥 Teams</div>
+        <div class="team-group">
+            <label class="team-label red" id="team-red-label">🔴 Red Team</label>
+            <textarea class="team-input red" id="team-red-input" placeholder="Type player names..." oninput="saveTeams()"></textarea>
+        </div>
+        <div class="team-group">
+            <label class="team-label yellow" id="team-yellow-label">🟡 Yellow Team</label>
+            <textarea class="team-input yellow" id="team-yellow-input" placeholder="Type player names..." oninput="saveTeams()"></textarea>
+        </div>
+    </div>
+</div>
+
+<script>
+    const ROWS = 6, COLS = 7;
+    let currentPlayer = 1;
+    let boardState = Array(COLS).fill(null).map(() => Array(ROWS).fill(null));
+    let activeCol = null;
+
+    let currentRegularQuestion = null;
+    let currentTriviaQuestion = null;
+    let isTriviaActive = false;
+    let currentLang = 'en';
+
+    // ─── TRANSLATIONS ──────────────────────────────────────────────────────
+    const translations = {
+        en: {
+            pageTitle: '📅 How Often?',
+            pageSubtitle: 'Answer and Connect 4 to win!',
+            fsNever: 'Never',
+            fsSometimes: 'Sometimes',
+            fsOnceWeek: 'Once a week',
+            fsEveryDay: 'Every day',
+            fsAlways: 'Always!',
+            htpTitle: '📖 How to Play',
+            htpStep1: 'Pick a column (1–7)',
+            htpStep2: 'Say HOW OFTEN you do it!',
+            htpStep3: 'Good answer = piece drops!',
+            htpStep4: 'Connect 4 in a row to win!',
+            legendRed: '🔴 Red',
+            legendYellow: '🟡 Yellow',
+            statusP1: "🔴 Red Player's Turn",
+            statusP2: "🟡 Yellow Player's Turn",
+            badgeRed: "🔴 Red's Turn",
+            badgeYellow: "🟡 Yellow's Turn",
+            btnTryAgain: "❌ Try Again",
+            btnGoodAnswer: "✅ Good answer!",
+            btnHarderQuestion: "🔥 Harder Question",
+            btnNormalQuestion: "🎯 Regular Question",
+            revealAnswer: "👁️ Show Answer",
+            hideAnswer: "👁️ Hide Answer",
+            winTitleP1: "🎉 Red Wins!",
+            winTitleP2: "🎉 Yellow Wins!",
+            winText: "Amazing — well done! 🌟",
+            btnPlayAgain: "🔄 Play Again",
+            teamsTitle: '👥 Teams',
+            redTeam: '🔴 Red Team',
+            yellowTeam: '🟡 Yellow Team',
+            teamsPlaceholder: 'Type player names...'
+        },
+        vi: {
+            pageTitle: '📅 Thường Xuyên Thế Nào?',
+            pageSubtitle: 'Trả lời và Kết nối 4 quân để thắng!',
+            fsNever: 'Không bao giờ',
+            fsSometimes: 'Thỉnh thoảng',
+            fsOnceWeek: 'Mỗi tuần một lần',
+            fsEveryDay: 'Mỗi ngày',
+            fsAlways: 'Luôn luôn!',
+            htpTitle: '📖 Cách chơi',
+            htpStep1: 'Chọn một cột (1–7)',
+            htpStep2: 'Nói tần suất bạn làm việc đó!',
+            htpStep3: 'Trả lời đúng = thả quân cờ!',
+            htpStep4: 'Xếp 4 quân liền nhau để thắng!',
+            legendRed: '🔴 Đỏ',
+            legendYellow: '🟡 Vàng',
+            statusP1: "🔴 Đến lượt người chơi Đỏ",
+            statusP2: "🟡 Đến lượt người chơi Vàng",
+            badgeRed: "🔴 Lượt của Đỏ",
+            badgeYellow: "🟡 Lượt của Vàng",
+            btnTryAgain: "❌ Thử lại",
+            btnGoodAnswer: "✅ Trả lời tốt!",
+            btnHarderQuestion: "🔥 Câu hỏi khó hơn",
+            btnNormalQuestion: "🎯 Câu hỏi thường",
+            revealAnswer: "👁️ Xem đáp án",
+            hideAnswer: "👁️ Ẩn đáp án",
+            winTitleP1: "🎉 Đỏ thắng cuộc!",
+            winTitleP2: "🎉 Vàng thắng cuộc!",
+            winText: "Tuyệt vời — làm tốt lắm! 🌟",
+            btnPlayAgain: "🔄 Chơi lại",
+            teamsTitle: '👥 Các Đội',
+            redTeam: '🔴 Đội Đỏ',
+            yellowTeam: '🟡 Đội Vàng',
+            teamsPlaceholder: 'Nhập tên người chơi...'
+        }
+    };
+
+    // ─── ACTIVITIES ────────────────────────────────────────────────────────
+    const activities = [
+        { emoji: '🏊', q: 'How often do you swim?' },
+        { emoji: '🚲', q: 'How often do you ride a bike?' },
+        { emoji: '🎮', q: 'How often do you play video games?' },
+        { emoji: '📚', q: 'How often do you read a book?' },
+        { emoji: '🍕', q: 'How often do you eat pizza?' },
+        { emoji: '🎨', q: 'How often do you draw or paint?' },
+        { emoji: '⚽', q: 'How often do you play football?' },
+        { emoji: '🎵', q: 'How often do you listen to music?' },
+        { emoji: '🛁', q: 'How often do you take a bath?' },
+        { emoji: '🍎', q: 'How often do you eat fruit?' },
+        { emoji: '🏃', q: 'How often do you go running?' },
+        { emoji: '📱', q: 'How often do you use a tablet or phone?' },
+        { emoji: '🎂', q: 'How often do you eat cake?' },
+        { emoji: '🌳', q: 'How often do you go to the park?' },
+        { emoji: '🎤', q: 'How often do you sing?' },
+        { emoji: '🍦', q: 'How often do you eat ice cream?' },
+        { emoji: '🐶', q: 'How often do you play with a dog?' },
+        { emoji: '🎬', q: 'How often do you watch a movie?' },
+        { emoji: '🍜', q: 'How often do you eat noodles?' },
+        { emoji: '🤸', q: 'How often do you do exercise?' },
+        { emoji: '🧁', q: 'How often do you bake something?' },
+        { emoji: '💤', q: 'How often do you take a nap?' },
+        { emoji: '🛒', q: 'How often do you go shopping?' },
+        { emoji: '🎸', q: 'How often do you play an instrument?' },
+        { emoji: '🌟', q: 'How often do you stay up late?' },
+        { emoji: '🍔', q: 'How often do you eat a burger?' },
+        { emoji: '🧹', q: 'How often do you clean your room?' },
+        { emoji: '✈️', q: 'How often do you travel by plane?' },
+        { emoji: '🎳', q: 'How often do you go bowling?' },
+        { emoji: '🏖️', q: 'How often do you go to the beach?' },
+    ];
+
+    const harderQuestions = [
+        { emoji: '🏆', q: 'How often is the FIFA World Cup held?', a: 'Every 4 years' },
+        { emoji: '📅', q: 'How often does a leap year occur?', a: 'Every 4 years' },
+        { emoji: '🥇', q: 'How often are the Summer Olympic Games held?', a: 'Every 4 years' },
+        { emoji: '🇺🇸', q: 'How often do US presidential elections take place?', a: 'Every 4 years' },
+        { emoji: '☄️', q: 'How often does Halley\'s Comet become visible from Earth?', a: 'Every 75–76 years' },
+        { emoji: '🌕', q: 'How often does the moon orbit the Earth?', a: 'About once every 27.3 days (once a month)' },
+        { emoji: '🌙', q: 'How often does a blue moon occur?', a: 'Roughly every 2.7 years' },
+        { emoji: '☀️', q: 'How often does the Earth orbit the Sun?', a: 'Once a year (every 365 days)' },
+        { emoji: '🌍', q: 'How often does the Earth rotate on its axis?', a: 'Once every 24 hours (every day)' },
+        { emoji: '🩸', q: 'How often does a healthy human adult heart beat per minute at rest?', a: '60 to 100 times' },
+        { emoji: '🗳️', q: 'How often are mid-term elections held in the United States?', a: 'Every 2 years' },
+        { emoji: '⚡', q: 'How often is a leap second added to UTC time on average?', a: 'About once every 1.5 years' },
+        { emoji: '🦁', q: 'How often do lions hunt relative to lionesses?', a: 'Rarely (lionesses do 90% of the hunting)' }
+    ];
+
+    let deck = [];
+    function getNext() {
+        if (deck.length === 0) deck = activities.map((_, i) => i).sort(() => Math.random() - 0.5);
+        return activities[deck.pop()];
+    }
+
+    let harderDeck = [];
+    function getNextHarder() {
+        if (harderDeck.length === 0) harderDeck = harderQuestions.map((_, i) => i).sort(() => Math.random() - 0.5);
+        return harderQuestions[harderDeck.pop()];
+    }
+
+    // ─── AUDIO ─────────────────────────────────────────────────────────────
+    let audioCtx;
+    function getCtx() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        return audioCtx;
+    }
+    function playSound(type) {
+        try {
+            const ctx = getCtx();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            if (type === 'correct') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523, ctx.currentTime);
+                osc.frequency.setValueAtTime(659, ctx.currentTime + 0.15);
+                osc.frequency.setValueAtTime(784, ctx.currentTime + 0.28);
+            } else {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(200, ctx.currentTime);
+            }
+            gain.gain.setValueAtTime(0.08, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+            osc.start(); osc.stop(ctx.currentTime + 0.5);
+        } catch(e) {}
+    }
+
+    // ─── BOARD ─────────────────────────────────────────────────────────────
+    function init() {
+        const board = document.getElementById('board');
+        for (let c = 0; c < COLS; c++) {
+            const col = document.createElement('div');
+            col.className = 'column';
+            col.onclick = () => handleColumnClick(c);
+            for (let r = 0; r < ROWS; r++) {
+                const slot = document.createElement('div');
+                slot.className = 'slot';
+                slot.id = `slot-${c}-${r}`;
+                col.appendChild(slot);
+            }
+            board.appendChild(col);
+        }
+    }
+
+    function updateColumnNumbers() {
+        document.querySelectorAll('.col-num').forEach((el, c) => {
+            el.classList.toggle('full', boardState[c].indexOf(null) === -1);
+        });
+    }
+
+    function handleColumnClick(c) {
+        if (boardState[c].indexOf(null) === -1) return;
+        activeCol = c;
+        currentRegularQuestion = getNext();
+        isTriviaActive = false;
+        currentTriviaQuestion = null;
+        
+        displayQuestion();
+        
+        const badge = document.getElementById('player-badge');
+        badge.innerText = currentPlayer === 1 ? translations[currentLang].badgeRed : translations[currentLang].badgeYellow;
+        badge.className = 'player-badge ' + (currentPlayer === 1 ? 'badge-red' : 'badge-yellow');
+        
+        document.getElementById('trivia-answer-box').style.display = 'none';
+        document.getElementById('trivia-answer-text').style.display = 'none';
+        
+        const chalBtn = document.getElementById('btn-challenge-toggle');
+        chalBtn.innerText = translations[currentLang].btnHarderQuestion;
+        
+        document.getElementById('overlay').style.display = 'flex';
+    }
+
+    function toggleQuestionDifficulty() {
+        if (isTriviaActive) {
+            isTriviaActive = false;
+        } else {
+            currentTriviaQuestion = getNextHarder();
+            isTriviaActive = true;
+        }
+        displayQuestion();
+    }
+
+    function displayQuestion() {
+        const emojiEl = document.getElementById('q-emoji');
+        const textEl = document.getElementById('q-text');
+        const chipsEl = document.querySelector('.chips');
+        const answerBox = document.getElementById('trivia-answer-box');
+        const chalBtn = document.getElementById('btn-challenge-toggle');
+        
+        if (isTriviaActive) {
+            emojiEl.innerText = currentTriviaQuestion.emoji;
+            textEl.innerText = currentTriviaQuestion.q;
+            chipsEl.style.display = 'none';
+            answerBox.style.display = 'block';
+            document.getElementById('trivia-answer-text').innerText = (currentLang === 'vi' ? 'Đáp án: ' : 'Answer: ') + currentTriviaQuestion.a;
+            document.getElementById('trivia-answer-text').style.display = 'none';
+            document.getElementById('btn-reveal-answer').innerText = translations[currentLang].revealAnswer;
+            chalBtn.innerText = translations[currentLang].btnNormalQuestion;
+            chalBtn.classList.add('btn-normal-mode');
+        } else {
+            emojiEl.innerText = currentRegularQuestion.emoji;
+            textEl.innerText = currentRegularQuestion.q;
+            chipsEl.style.display = 'flex';
+            answerBox.style.display = 'none';
+            chalBtn.innerText = translations[currentLang].btnHarderQuestion;
+            chalBtn.classList.remove('btn-normal-mode');
+        }
+    }
+
+    function toggleTriviaAnswer() {
+        const answerText = document.getElementById('trivia-answer-text');
+        const revealBtn = document.getElementById('btn-reveal-answer');
+        const isHidden = answerText.style.display === 'none';
+        if (isHidden) {
+            answerText.style.display = 'block';
+            revealBtn.innerText = translations[currentLang].hideAnswer;
+        } else {
+            answerText.style.display = 'none';
+            revealBtn.innerText = translations[currentLang].revealAnswer;
+        }
+    }
+
+    function handleJudge(isCorrect) {
+        document.getElementById('overlay').style.display = 'none';
+        if (!isCorrect) { playSound('wrong'); return; }
+        playSound('correct');
+        const r = boardState[activeCol].indexOf(null);
+        boardState[activeCol][r] = currentPlayer;
+        const slot = document.getElementById(`slot-${activeCol}-${r}`);
+        slot.style.setProperty('--drop-y', `-${(ROWS - r) * 74}px`);
+        slot.className = `slot ${currentPlayer === 1 ? 'red' : 'yellow'} dropping`;
+        slot.addEventListener('animationend', () => slot.classList.remove('dropping'), { once: true });
+        updateColumnNumbers();
+        const winCells = checkWin(activeCol, r);
+        if (winCells) { setTimeout(() => showWin(currentPlayer, winCells), 300); return; }
+        currentPlayer = currentPlayer === 1 ? 2 : 1;
+        updateStatus();
+    }
+
+    function updateStatus() {
+        const s = document.getElementById('status');
+        s.innerText = currentPlayer === 1 ? translations[currentLang].statusP1 : translations[currentLang].statusP2;
+        s.className = `status-bar ${currentPlayer === 1 ? 'p1-turn' : 'p2-turn'}`;
+    }
+
+    function showWin(player, cells) {
+        cells.forEach(([wc, wr]) => {
+            document.getElementById(`slot-${wc}-${wr}`).classList.add('win');
+        });
+        const t = document.getElementById('win-title');
+        t.innerText = player === 1 ? translations[currentLang].winTitleP1 : translations[currentLang].winTitleP2;
+        t.style.color = player === 1 ? '#ff4757' : '#ffa502';
+        
+        const winOverlay = document.getElementById('win-overlay');
+        const p = winOverlay.querySelector('p');
+        if (p) p.innerText = translations[currentLang].winText;
+        const btnRestart = winOverlay.querySelector('.btn-restart');
+        if (btnRestart) btnRestart.innerText = translations[currentLang].btnPlayAgain;
+        
+        winOverlay.classList.add('show');
+    }
+
+    function checkWin(c, r) {
+        const p = boardState[c][r];
+        const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+        for (let [dc, dr] of dirs) {
+            let cells = [[c, r]];
+            for (let i = 1; i < 4; i++) { if (boardState[c+dc*i]?.[r+dr*i] === p) cells.push([c+dc*i, r+dr*i]); else break; }
+            for (let i = 1; i < 4; i++) { if (boardState[c-dc*i]?.[r-dr*i] === p) cells.push([c-dc*i, r-dr*i]); else break; }
+            if (cells.length >= 4) return cells;
+        }
+        return null;
+    }
+
+    function setLanguage(lang) {
+        currentLang = lang;
+        
+        // Update language toggle buttons active state
+        const langEn = document.getElementById('lang-en');
+        const langVi = document.getElementById('lang-vi');
+        if (langEn) langEn.classList.toggle('active', lang === 'en');
+        if (langVi) langVi.classList.toggle('active', lang === 'vi');
+        
+        // Update static UI text
+        document.getElementById('page-title').innerText = translations[lang].pageTitle;
+        document.getElementById('page-subtitle').innerText = translations[lang].pageSubtitle;
+        
+        // Update scale items
+        document.getElementById('fs-never').innerText = translations[lang].fsNever;
+        document.getElementById('fs-sometimes').innerText = translations[lang].fsSometimes;
+        document.getElementById('fs-once-week').innerText = translations[lang].fsOnceWeek;
+        document.getElementById('fs-every-day').innerText = translations[lang].fsEveryDay;
+        document.getElementById('fs-always').innerText = translations[lang].fsAlways;
+        
+        // Update status bar
+        updateStatus();
+        
+        // Update how-to-play text
+        document.getElementById('htp-title').innerText = translations[lang].htpTitle;
+        document.getElementById('htp-step-1').innerText = translations[lang].htpStep1;
+        document.getElementById('htp-step-2').innerText = translations[lang].htpStep2;
+        document.getElementById('htp-step-3').innerText = translations[lang].htpStep3;
+        document.getElementById('htp-step-4').innerText = translations[lang].htpStep4;
+        document.getElementById('legend-red').innerText = translations[lang].legendRed;
+        document.getElementById('legend-yellow').innerText = translations[lang].legendYellow;
+        
+        // Update teams panel text
+        const tTitle = document.getElementById('teams-title');
+        if (tTitle) tTitle.innerText = translations[lang].teamsTitle;
+        const trLabel = document.getElementById('team-red-label');
+        if (trLabel) trLabel.innerText = translations[lang].redTeam;
+        const tyLabel = document.getElementById('team-yellow-label');
+        if (tyLabel) tyLabel.innerText = translations[lang].yellowTeam;
+        const trInput = document.getElementById('team-red-input');
+        if (trInput) trInput.placeholder = translations[lang].teamsPlaceholder;
+        const tyInput = document.getElementById('team-yellow-input');
+        if (tyInput) tyInput.placeholder = translations[lang].teamsPlaceholder;
+        
+        // Update overlay if open
+        const overlay = document.getElementById('overlay');
+        if (overlay && overlay.style.display === 'flex') {
+            const badge = document.getElementById('player-badge');
+            if (badge) {
+                badge.innerText = currentPlayer === 1 ? translations[lang].badgeRed : translations[lang].badgeYellow;
+            }
+            
+            const btnTryAgain = overlay.querySelector('.btn-no');
+            if (btnTryAgain) btnTryAgain.innerText = translations[lang].btnTryAgain;
+            
+            const btnGoodAnswer = overlay.querySelector('.btn-yes');
+            if (btnGoodAnswer) btnGoodAnswer.innerText = translations[lang].btnGoodAnswer;
+            
+            const chalBtn = document.getElementById('btn-challenge-toggle');
+            if (chalBtn) {
+                chalBtn.innerText = isTriviaActive ? translations[lang].btnNormalQuestion : translations[lang].btnHarderQuestion;
+            }
+            
+            const revealBtn = document.getElementById('btn-reveal-answer');
+            if (revealBtn) {
+                const answerText = document.getElementById('trivia-answer-text');
+                const isRevealed = answerText.style.display !== 'none';
+                revealBtn.innerText = isRevealed ? translations[lang].hideAnswer : translations[lang].revealAnswer;
+                if (currentTriviaQuestion) {
+                    answerText.innerText = (lang === 'vi' ? 'Đáp án: ' : 'Answer: ') + currentTriviaQuestion.a;
+                }
+            }
+        }
+        
+        // Update win card if open
+        const winOverlay = document.getElementById('win-overlay');
+        if (winOverlay && winOverlay.classList.contains('show')) {
+            const t = document.getElementById('win-title');
+            if (t) t.innerText = currentPlayer === 1 ? translations[lang].winTitleP1 : translations[lang].winTitleP2;
+            const p = winOverlay.querySelector('p');
+            if (p) p.innerText = translations[lang].winText;
+            const btnRestart = winOverlay.querySelector('.btn-restart');
+            if (btnRestart) btnRestart.innerText = translations[lang].btnPlayAgain;
+        }
+    }
+
+    function saveTeams() {
+        const redInput = document.getElementById('team-red-input');
+        const yellowInput = document.getElementById('team-yellow-input');
+        if (redInput && yellowInput) {
+            localStorage.setItem('c4_red_team', redInput.value);
+            localStorage.setItem('c4_yellow_team', yellowInput.value);
+        }
+    }
+
+    function loadTeams() {
+        const redInput = document.getElementById('team-red-input');
+        const yellowInput = document.getElementById('team-yellow-input');
+        if (redInput && yellowInput) {
+            redInput.value = localStorage.getItem('c4_red_team') || '';
+            yellowInput.value = localStorage.getItem('c4_yellow_team') || '';
+        }
+    }
+
+    init();
+    loadTeams();
+    setLanguage('en');
+</script>
+</body>
+</html>

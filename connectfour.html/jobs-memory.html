@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jobs Memory Game 💼</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #eef4ff;
+      --orange: #FF6B35;
+      --yellow: #FFD93D;
+      --pink: #FF6B9D;
+      --green: #6BCB77;
+      --blue: #1e90ff;
+      --purple: #9B59B6;
+      --red: #FF4757;
+      --card-back: #1e90ff;
+      --card-back2: #4ecdc4;
+      --shadow: rgba(0,0,0,0.12);
+      --dark: #1e3a5f;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+
+    body {
+      background: var(--bg);
+      font-family: 'Nunito', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 12px;
+      gap: 10px;
+    }
+
+    /* ── Header ── */
+    header { text-align: center; width: 100%; }
+
+    .title {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(28px, 5vw, 52px);
+      color: var(--blue);
+      text-shadow: 3px 3px 0 var(--yellow), 5px 5px 0 rgba(0,0,0,0.08);
+      line-height: 1;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--purple);
+      margin-top: 2px;
+    }
+
+    /* ── Scoreboard ── */
+    .scoreboard {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .player-score {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: white;
+      border-radius: 20px;
+      padding: 10px 22px;
+      box-shadow: 0 4px 14px var(--shadow);
+      border: 3px solid transparent;
+      transition: all 0.25s;
+      min-width: 110px;
+    }
+
+    .player-score.active-p1 {
+      border-color: #ff4757;
+      box-shadow: 0 4px 18px rgba(255,71,87,0.35);
+      transform: translateY(-2px);
+    }
+
+    .player-score.active-p2 {
+      border-color: #ffa502;
+      box-shadow: 0 4px 18px rgba(255,165,2,0.35);
+      transform: translateY(-2px);
+    }
+
+    .player-name {
+      font-family: 'Fredoka One';
+      font-size: 14px;
+      color: #aaa;
+    }
+
+    .player-score.active-p1 .player-name { color: #ff4757; }
+    .player-score.active-p2 .player-name { color: #ffa502; }
+
+    .player-pts {
+      font-family: 'Fredoka One';
+      font-size: 36px;
+      color: var(--dark);
+      line-height: 1;
+    }
+
+    .player-score.active-p1 .player-pts { color: #ff4757; }
+    .player-score.active-p2 .player-pts { color: #ffa502; }
+
+    .turn-arrow {
+      font-family: 'Fredoka One';
+      font-size: 22px;
+      color: #ccc;
+      transition: all 0.25s;
+    }
+
+    .pairs-left {
+      font-family: 'Fredoka One';
+      font-size: 13px;
+      color: #aaa;
+      background: white;
+      border-radius: 50px;
+      padding: 6px 16px;
+      box-shadow: 0 3px 8px var(--shadow);
+    }
+
+    /* ── Diff buttons ── */
+    .diff-row { display: flex; gap: 10px; }
+
+    .diff-btn {
+      font-family: 'Fredoka One';
+      font-size: 15px;
+      border: 3px solid transparent;
+      border-radius: 50px;
+      padding: 6px 18px;
+      cursor: pointer;
+      background: white;
+      color: var(--dark);
+      box-shadow: 0 3px 8px var(--shadow);
+      transition: all 0.2s;
+    }
+    .diff-btn:hover { transform: translateY(-1px); }
+    .diff-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
+
+    .reset-btn {
+      font-family: 'Fredoka One';
+      font-size: 15px;
+      border: none;
+      border-radius: 50px;
+      padding: 6px 18px;
+      cursor: pointer;
+      background: var(--orange);
+      color: white;
+      box-shadow: 0 3px 8px var(--shadow);
+      transition: all 0.2s;
+    }
+    .reset-btn:hover { transform: translateY(-1px); }
+
+    /* ── Grid ── */
+    .grid-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+    }
+
+    .grid { display: grid; gap: 8px; }
+
+    /* ── Card ── */
+    .card {
+      perspective: 700px;
+      cursor: pointer;
+    }
+
+    .card-inner {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.38s cubic-bezier(.4,0,.2,1);
+    }
+
+    .card.flipped .card-inner,
+    .card.matched .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-face {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    .card-back {
+      background: linear-gradient(135deg, var(--card-back), var(--card-back2));
+      box-shadow: 0 5px 0 rgba(0,0,0,0.15);
+    }
+
+    .card-back-inner {
+      font-family: 'Fredoka One', cursive;
+      font-size: 34px;
+      color: white;
+      text-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+    }
+
+    .card-front {
+      background: white;
+      transform: rotateY(180deg);
+      box-shadow: 0 5px 0 #ddd;
+      padding: 6px;
+      overflow: hidden;
+    }
+
+    .card.matched .card-front {
+      background: #f0fff4;
+      box-shadow: 0 5px 0 var(--green);
+    }
+
+    .card.matched-p1 .card-front {
+      background: #fff0f0;
+      box-shadow: 0 5px 0 #ff4757;
+    }
+
+    .card.matched-p2 .card-front {
+      background: #fffbf0;
+      box-shadow: 0 5px 0 #ffa502;
+    }
+
+    .card-img {
+      width: 100%;
+      flex: 1;
+      object-fit: cover;
+      border-radius: 10px;
+      min-height: 0;
+    }
+
+    .card-word {
+      font-family: 'Fredoka One';
+      color: var(--dark);
+      font-size: 11px;
+      margin-top: 4px;
+      text-align: center;
+      line-height: 1.2;
+      flex-shrink: 0;
+    }
+
+    /* ── Win overlay ── */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 40, 100, 0.75);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(6px);
+    }
+    .overlay.show { display: flex; }
+
+    .win-box {
+      background: white;
+      border-radius: 28px;
+      padding: 36px 28px;
+      text-align: center;
+      max-width: 380px;
+      width: 90%;
+      animation: popIn 0.4s cubic-bezier(.4,0,.2,1);
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0.6); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    .win-emoji { font-size: 64px; }
+    .win-title {
+      font-family: 'Fredoka One';
+      font-size: 34px;
+      color: var(--blue);
+      margin: 8px 0 4px;
+    }
+    .win-final-scores {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      margin: 12px 0;
+    }
+    .win-score-box {
+      border-radius: 16px;
+      padding: 10px 20px;
+      text-align: center;
+      font-family: 'Fredoka One';
+    }
+    .win-score-box.p1 { background: #fff0f0; color: #ff4757; }
+    .win-score-box.p2 { background: #fffbf0; color: #ffa502; }
+    .win-score-box .wsb-name { font-size: 13px; }
+    .win-score-box .wsb-pts  { font-size: 32px; line-height: 1; }
+    .win-msg {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--purple);
+      margin-bottom: 20px;
+    }
+    .play-again-btn {
+      font-family: 'Fredoka One';
+      font-size: 20px;
+      border: none;
+      border-radius: 50px;
+      padding: 12px 32px;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      color: white;
+      box-shadow: 0 5px 0 rgba(0,0,0,0.15);
+      transition: all 0.2s;
+    }
+    .play-again-btn:hover { transform: translateY(-2px); }
+
+    /* ── Confetti ── */
+    .confetti-piece {
+      position: fixed;
+      width: 10px; height: 14px;
+      top: -20px;
+      border-radius: 3px;
+      animation: confettiFall linear forwards;
+      z-index: 200;
+      pointer-events: none;
+    }
+    @keyframes confettiFall {
+      to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+    }
+
+    /* ── Match burst ── */
+    @keyframes burst {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.18); }
+      70%  { transform: scale(0.94); }
+      100% { transform: scale(1); }
+    }
+    .card.matched { animation: burst 0.5s ease; }
+
+    /* ── Teach overlay ── */
+    .teach-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 30, 70, 0.88);
+      z-index: 150;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+      padding: 16px;
+    }
+    .teach-overlay.show { display: flex; }
+
+    .teach-box {
+      background: white;
+      border-radius: 32px;
+      padding: 28px 24px 28px;
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+      animation: popIn 0.35s cubic-bezier(.4,0,.2,1);
+    }
+
+    .teach-counter {
+      font-family: 'Fredoka One';
+      font-size: 15px;
+      color: #bbb;
+      margin-bottom: 8px;
+    }
+
+    .teach-slide-img {
+      width: 200px;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 18px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      display: block;
+      margin: 0 auto 4px;
+      transition: opacity 0.15s, transform 0.15s;
+    }
+
+    .teach-slide-word {
+      font-family: 'Fredoka One';
+      font-size: 38px;
+      color: var(--dark);
+      margin: 12px 0 16px;
+      transition: opacity 0.15s;
+    }
+
+    .teach-nav {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .nav-btn {
+      font-family: 'Fredoka One';
+      font-size: 22px;
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      background: var(--bg);
+      color: var(--dark);
+      box-shadow: 0 4px 0 #ddd;
+      transition: all 0.18s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .nav-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #ddd; }
+    .nav-btn:disabled { opacity: 0.3; cursor: default; transform: none; }
+
+    .slide-dots {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      flex-wrap: wrap;
+      max-width: 320px;
+      margin: 0 auto;
+    }
+
+    .slide-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #ddd;
+      transition: background 0.2s, transform 0.2s;
+      cursor: pointer;
+    }
+    .slide-dot.active { background: var(--blue); transform: scale(1.3); }
+
+    .teach-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .teach-play-btn {
+      font-family: 'Fredoka One';
+      font-size: 18px;
+      border: none;
+      border-radius: 50px;
+      padding: 11px 28px;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--green), var(--blue));
+      color: white;
+      box-shadow: 0 5px 0 rgba(0,0,0,0.15);
+      transition: all 0.2s;
+    }
+    .teach-play-btn:hover { transform: translateY(-2px); }
+
+    .teach-close-btn {
+      font-family: 'Fredoka One';
+      font-size: 15px;
+      border: 3px solid #ddd;
+      border-radius: 50px;
+      padding: 11px 22px;
+      cursor: pointer;
+      background: white;
+      color: #999;
+      transition: all 0.2s;
+    }
+    .teach-close-btn:hover { border-color: var(--blue); color: var(--blue); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="title">💼 Jobs Memory! 👩‍💻</div>
+  <div class="subtitle">Find the matching job!</div>
+</header>
+
+<div class="scoreboard">
+  <div class="player-score" id="p1-score">
+    <div class="player-name">🔴 Player 1</div>
+    <div class="player-pts" id="p1-pts">0</div>
+  </div>
+  <div class="turn-arrow" id="turn-arrow">▶</div>
+  <div class="player-score" id="p2-score">
+    <div class="player-name">🟡 Player 2</div>
+    <div class="player-pts" id="p2-pts">0</div>
+  </div>
+  <div class="pairs-left" id="pairs-left"></div>
+</div>
+
+<div class="diff-row">
+  <button class="diff-btn active" id="btn-easy"   onclick="setDiff('easy')">🌱 Easy</button>
+  <button class="diff-btn"        id="btn-medium"  onclick="setDiff('medium')">🌟 Medium</button>
+  <button class="reset-btn" style="background:var(--purple);" onclick="openTeach()">📚 Teach</button>
+  <button class="reset-btn"                         onclick="startGame()">🔄 New Game</button>
+</div>
+
+<div class="grid-wrap">
+  <div class="grid" id="grid"></div>
+</div>
+
+<div class="teach-overlay" id="teach-overlay">
+  <div class="teach-box">
+    <div class="teach-counter" id="teach-counter">1 / 16</div>
+    <img class="teach-slide-img" id="slide-img" src="" alt="Job image">
+    <div class="teach-slide-word" id="slide-word">Job</div>
+    <div class="teach-nav">
+      <button class="nav-btn" id="prev-btn" onclick="teachNav(-1)">◀</button>
+      <div class="slide-dots" id="slide-dots"></div>
+      <button class="nav-btn" id="next-btn" onclick="teachNav(1)">▶</button>
+    </div>
+    <div class="teach-actions">
+      <button class="teach-play-btn" onclick="closeTeachAndPlay()">▶ Let's Play! 🎮</button>
+      <button class="teach-close-btn" onclick="closeTeach()">✕ Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="win-box">
+    <div class="win-emoji" id="win-emoji">🎉</div>
+    <div class="win-title" id="win-title">Game Over!</div>
+    <div class="win-final-scores">
+      <div class="win-score-box p1"><div class="wsb-name">🔴 Player 1</div><div class="wsb-pts" id="win-p1-pts">0</div></div>
+      <div class="win-score-box p2"><div class="wsb-name">🟡 Player 2</div><div class="wsb-pts" id="win-p2-pts">0</div></div>
+    </div>
+    <div class="win-msg" id="win-msg"></div>
+    <button class="play-again-btn" onclick="startGame()">Play Again! 💼</button>
+  </div>
+</div>
+
+<script>
+  const IMG_PATH = '../images/jobs/';
+
+  const JOBS = [
+    { img: IMG_PATH + 'imgi_1_1479446325_7_images-1.jpg',   w: 'Homemaker' },
+    { img: IMG_PATH + 'imgi_2_1479446345_10_images-2.jpg',   w: 'Bus Driver' },
+    { img: IMG_PATH + 'imgi_3_1479446367_11_images-3.jpg',   w: 'Cleaner' },
+    { img: IMG_PATH + 'imgi_4_1479446389_6_images-4.jpg',    w: 'Dancer' },
+    { img: IMG_PATH + 'imgi_5_1479446405_9_images.jpg',      w: 'Chef' },
+    { img: IMG_PATH + 'imgi_6_1479446423_8_imgres-1.jpg',    w: 'Nurse' },
+    { img: IMG_PATH + 'imgi_7_1479446441_7_imgres-2.jpg',    w: 'Police Officer' },
+    { img: IMG_PATH + 'imgi_8_1479446458_10_imgres-3.jpg',   w: 'Firefighter' },
+    { img: IMG_PATH + 'imgi_9_1479446482_8_imgres-4.jpg',    w: 'Office Worker' },
+    { img: IMG_PATH + 'imgi_10_1479446500_10_imgres-5.jpg',  w: 'Engineer' },
+    { img: IMG_PATH + 'imgi_11_1479446523_9_imgres-6.jpg',   w: 'Dentist' },
+    { img: IMG_PATH + 'imgi_12_1479446611_10_imgres-7.jpg',  w: 'Secretary' },
+    { img: IMG_PATH + 'imgi_13_1479446632_11_imgres-8.jpg',  w: 'Taxi Driver' },
+    { img: IMG_PATH + 'imgi_14_1479446651_11_imgres-9.jpg',  w: 'Mechanic' },
+    { img: IMG_PATH + 'imgi_15_1479446676_10_imgres-10.jpg', w: 'Salesperson' },
+    { img: IMG_PATH + 'imgi_16_1479446697_9_imgres-11.jpg',  w: 'Barista' },
+  ];
+
+  const CONFIGS = {
+    easy:   { pairs: 6,  cols: 4, cardW: 110, cardH: 140 },
+    medium: { pairs: 12, cols: 6, cardW: 100, cardH: 128 },
+  };
+
+  let difficulty = 'easy';
+  let flipped = [];
+  let lock = false;
+  let scores = [0, 0];
+  let currentPlayer = 1;
+  let totalPairs = 0;
+  let matched = 0;
+
+  function setDiff(d) {
+    difficulty = d;
+    document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-' + d).classList.add('active');
+    startGame();
+  }
+
+  function startGame() {
+    scores = [0, 0];
+    currentPlayer = 1;
+    matched = 0;
+    flipped = [];
+    lock = false;
+
+    const cfg = CONFIGS[difficulty];
+    totalPairs = cfg.pairs;
+
+    updateScoreboard();
+    updatePairsLeft();
+
+    const pool = [...JOBS].sort(() => Math.random() - 0.5).slice(0, cfg.pairs);
+    const deck = [...pool, ...pool].sort(() => Math.random() - 0.5);
+
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    grid.style.gridTemplateColumns = `repeat(${cfg.cols}, ${cfg.cardW}px)`;
+
+    deck.forEach((item, i) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.style.width  = cfg.cardW + 'px';
+      card.style.height = cfg.cardH + 'px';
+      card.dataset.job = item.img;
+      card.innerHTML = `
+        <div class="card-inner">
+          <div class="card-face card-back">
+            <div class="card-back-inner">${i + 1}</div>
+          </div>
+          <div class="card-face card-front">
+            <img class="card-img" src="${item.img}" alt="${item.w}">
+            <div class="card-word">${item.w}</div>
+          </div>
+        </div>`;
+      card.addEventListener('click', () => flipCard(card));
+      grid.appendChild(card);
+    });
+
+    document.getElementById('overlay').classList.remove('show');
+  }
+
+  function flipCard(card) {
+    if (lock || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+
+    card.classList.add('flipped');
+    flipped.push(card);
+
+    if (flipped.length === 2) {
+      lock = true;
+      const [a, b] = flipped;
+
+      if (a.dataset.job === b.dataset.job) {
+        scores[currentPlayer - 1]++;
+        matched++;
+        const pClass = 'matched-p' + currentPlayer;
+        setTimeout(() => {
+          a.classList.add('matched', pClass);
+          b.classList.add('matched', pClass);
+          flipped = [];
+          lock = false;
+          updateScoreboard();
+          updatePairsLeft();
+          if (matched === totalPairs) setTimeout(endGame, 400);
+        }, 400);
+      } else {
+        setTimeout(() => {
+          a.classList.remove('flipped');
+          b.classList.remove('flipped');
+          flipped = [];
+          lock = false;
+          currentPlayer = currentPlayer === 1 ? 2 : 1;
+          updateScoreboard();
+        }, 1100);
+      }
+    }
+  }
+
+  function updateScoreboard() {
+    document.getElementById('p1-pts').textContent = scores[0];
+    document.getElementById('p2-pts').textContent = scores[1];
+    const p1el = document.getElementById('p1-score');
+    const p2el = document.getElementById('p2-score');
+    const arrow = document.getElementById('turn-arrow');
+    p1el.className = 'player-score' + (currentPlayer === 1 ? ' active-p1' : '');
+    p2el.className = 'player-score' + (currentPlayer === 2 ? ' active-p2' : '');
+    arrow.textContent = currentPlayer === 1 ? '▶' : '◀';
+  }
+
+  function updatePairsLeft() {
+    const left = totalPairs - matched;
+    document.getElementById('pairs-left').textContent =
+      left > 0 ? `${left} pair${left !== 1 ? 's' : ''} left` : '';
+  }
+
+  function endGame() {
+    const [s1, s2] = scores;
+    let emoji, title, msg;
+    if (s1 > s2) {
+      emoji = '🏆'; title = '🔴 Player 1 Wins!'; msg = `Player 1 wins with ${s1} pairs! Great memory! 🌟`;
+    } else if (s2 > s1) {
+      emoji = '🏆'; title = '🟡 Player 2 Wins!'; msg = `Player 2 wins with ${s2} pairs! Amazing! 🌟`;
+    } else {
+      emoji = '🤝'; title = 'It\'s a Tie!'; msg = `Both players got ${s1} pairs — fantastic! �`;
+    }
+    document.getElementById('win-emoji').textContent = emoji;
+    document.getElementById('win-title').textContent = title;
+    document.getElementById('win-p1-pts').textContent = s1;
+    document.getElementById('win-p2-pts').textContent = s2;
+    document.getElementById('win-msg').textContent = msg;
+    document.getElementById('overlay').classList.add('show');
+    launchConfetti();
+  }
+
+  function launchConfetti() {
+    const colors = ['#1e90ff','#FFD93D','#FF6B9D','#6BCB77','#4ECDC4','#9B59B6'];
+    for (let i = 0; i < 60; i++) {
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      piece.style.left = Math.random() * 100 + 'vw';
+      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+      piece.style.animationDuration = (1.5 + Math.random() * 2) + 's';
+      piece.style.animationDelay = (Math.random() * 0.8) + 's';
+      piece.style.transform = `rotate(${Math.random() * 360}deg)`;
+      document.body.appendChild(piece);
+      piece.addEventListener('animationend', () => piece.remove());
+    }
+  }
+
+  let teachIndex = 0;
+
+  function openTeach() {
+    teachIndex = 0;
+    const dotsEl = document.getElementById('slide-dots');
+    dotsEl.innerHTML = '';
+    JOBS.forEach((_, i) => {
+      const dot = document.createElement('div');
+      dot.className = 'slide-dot' + (i === 0 ? ' active' : '');
+      dot.addEventListener('click', () => { teachIndex = i; renderSlide(); });
+      dotsEl.appendChild(dot);
+    });
+    renderSlide();
+    document.getElementById('teach-overlay').classList.add('show');
+  }
+
+  function renderSlide() {
+    const item = JOBS[teachIndex];
+    const imgEl = document.getElementById('slide-img');
+    const wordEl = document.getElementById('slide-word');
+    imgEl.style.opacity = '0'; imgEl.style.transform = 'scale(0.85)';
+    wordEl.style.opacity = '0';
+    setTimeout(() => {
+      imgEl.src = item.img;
+      imgEl.alt = item.w;
+      wordEl.textContent = item.w;
+      imgEl.style.opacity = '1'; imgEl.style.transform = 'scale(1)';
+      wordEl.style.opacity = '1';
+    }, 120);
+    document.getElementById('teach-counter').textContent = `${teachIndex + 1} / ${JOBS.length}`;
+    document.getElementById('prev-btn').disabled = teachIndex === 0;
+    document.getElementById('next-btn').disabled = teachIndex === JOBS.length - 1;
+    document.querySelectorAll('.slide-dot').forEach((d, i) => d.classList.toggle('active', i === teachIndex));
+  }
+
+  function teachNav(dir) {
+    teachIndex = Math.max(0, Math.min(JOBS.length - 1, teachIndex + dir));
+    renderSlide();
+  }
+
+  function closeTeach() {
+    document.getElementById('teach-overlay').classList.remove('show');
+  }
+
+  function closeTeachAndPlay() {
+    closeTeach();
+    startGame();
+  }
+
+  startGame();
+</script>
+</body>
+</html>

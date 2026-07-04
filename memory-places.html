@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Places Memory Game 🗺️</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #eef4ff;
+      --orange: #FF6B35;
+      --yellow: #FFD93D;
+      --pink: #FF6B9D;
+      --green: #6BCB77;
+      --blue: #1e90ff;
+      --purple: #9B59B6;
+      --red: #FF4757;
+      --card-back: #1e90ff;
+      --card-back2: #4ecdc4;
+      --shadow: rgba(0,0,0,0.12);
+      --dark: #1e3a5f;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+
+    body {
+      background: var(--bg);
+      font-family: 'Nunito', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 12px;
+      gap: 10px;
+    }
+
+    /* ── Header ── */
+    header { text-align: center; width: 100%; }
+
+    .title {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(28px, 5vw, 52px);
+      color: var(--blue);
+      text-shadow: 3px 3px 0 var(--yellow), 5px 5px 0 rgba(0,0,0,0.08);
+      line-height: 1;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--purple);
+      margin-top: 2px;
+    }
+
+    /* ── Scoreboard ── */
+    .scoreboard {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .player-score {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: white;
+      border-radius: 20px;
+      padding: 10px 22px;
+      box-shadow: 0 4px 14px var(--shadow);
+      border: 3px solid transparent;
+      transition: all 0.25s;
+      min-width: 110px;
+    }
+
+    .player-score.active-p1 {
+      border-color: #ff4757;
+      box-shadow: 0 4px 18px rgba(255,71,87,0.35);
+      transform: translateY(-2px);
+    }
+
+    .player-score.active-p2 {
+      border-color: #ffa502;
+      box-shadow: 0 4px 18px rgba(255,165,2,0.35);
+      transform: translateY(-2px);
+    }
+
+    .player-name {
+      font-family: 'Fredoka One';
+      font-size: 14px;
+      color: #aaa;
+    }
+
+    .player-score.active-p1 .player-name { color: #ff4757; }
+    .player-score.active-p2 .player-name { color: #ffa502; }
+
+    .player-pts {
+      font-family: 'Fredoka One';
+      font-size: 36px;
+      color: var(--dark);
+      line-height: 1;
+    }
+
+    .player-score.active-p1 .player-pts { color: #ff4757; }
+    .player-score.active-p2 .player-pts { color: #ffa502; }
+
+    .turn-arrow {
+      font-family: 'Fredoka One';
+      font-size: 22px;
+      color: #ccc;
+      transition: all 0.25s;
+    }
+
+    .pairs-left {
+      font-family: 'Fredoka One';
+      font-size: 13px;
+      color: #aaa;
+      background: white;
+      border-radius: 50px;
+      padding: 6px 16px;
+      box-shadow: 0 3px 8px var(--shadow);
+    }
+
+    /* ── Diff buttons ── */
+    .diff-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+
+    .diff-btn {
+      font-family: 'Fredoka One';
+      font-size: 14px;
+      border: 3px solid transparent;
+      border-radius: 50px;
+      padding: 6px 14px;
+      cursor: pointer;
+      background: white;
+      color: var(--dark);
+      box-shadow: 0 3px 8px var(--shadow);
+      transition: all 0.2s;
+    }
+    .diff-btn:hover { transform: translateY(-1px); }
+    .diff-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
+
+    .sound-toggle-btn {
+      font-family: 'Fredoka One';
+      font-size: 14px;
+      border: 3px solid transparent;
+      border-radius: 50px;
+      padding: 6px 14px;
+      cursor: pointer;
+      background: white;
+      color: var(--dark);
+      box-shadow: 0 3px 8px var(--shadow);
+      transition: all 0.2s;
+    }
+    .sound-toggle-btn.active { border-color: var(--green); color: var(--green); }
+
+    .reset-btn {
+      font-family: 'Fredoka One';
+      font-size: 14px;
+      border: none;
+      border-radius: 50px;
+      padding: 6px 16px;
+      cursor: pointer;
+      background: var(--orange);
+      color: white;
+      box-shadow: 0 3px 8px var(--shadow);
+      transition: all 0.2s;
+    }
+    .reset-btn:hover { transform: translateY(-1px); }
+
+    /* ── Grid ── */
+    .grid-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      width: 100%;
+    }
+
+    .grid { display: grid; gap: 8px; justify-content: center; }
+
+    /* ── Card ── */
+    .card {
+      perspective: 700px;
+      cursor: pointer;
+    }
+
+    .card-inner {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.38s cubic-bezier(.4,0,.2,1);
+    }
+
+    .card.flipped .card-inner,
+    .card.matched .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-face {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    .card-back {
+      background: linear-gradient(135deg, var(--card-back), var(--card-back2));
+      box-shadow: 0 5px 0 rgba(0,0,0,0.15);
+      border: 3px solid white;
+    }
+
+    .card-back-inner {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(20px, 3vw, 34px);
+      color: white;
+      text-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+    }
+
+    .card-front {
+      background: white;
+      transform: rotateY(180deg);
+      box-shadow: 0 5px 0 #ddd;
+      padding: 6px;
+      overflow: hidden;
+      border: 3px solid white;
+    }
+
+    .card.matched .card-front {
+      background: #f0fff4;
+      box-shadow: 0 5px 0 var(--green);
+    }
+
+    .card.matched-p1 .card-front {
+      background: #fff0f0;
+      box-shadow: 0 5px 0 #ff4757;
+    }
+
+    .card.matched-p2 .card-front {
+      background: #fffbf0;
+      box-shadow: 0 5px 0 #ffa502;
+    }
+
+    .card-img {
+      width: 100%;
+      flex: 1;
+      object-fit: cover;
+      border-radius: 10px;
+      min-height: 0;
+    }
+
+    .card-placeholder-gradient {
+      width: 100%;
+      flex: 1;
+      border-radius: 10px;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #a8c0ff 0%, #3f2b96 100%);
+    }
+
+    .card-emoji {
+      font-size: clamp(24px, 4vw, 42px);
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+    }
+
+    .card-word {
+      font-family: 'Fredoka One';
+      color: var(--dark);
+      font-size: clamp(8px, 1.2vw, 11px);
+      margin-top: 4px;
+      text-align: center;
+      line-height: 1.2;
+      flex-shrink: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+    }
+
+    /* ── Win overlay ── */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 40, 100, 0.75);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(6px);
+    }
+    .overlay.show { display: flex; }
+
+    .win-box {
+      background: white;
+      border-radius: 28px;
+      padding: 36px 28px;
+      text-align: center;
+      max-width: 380px;
+      width: 90%;
+      animation: popIn 0.4s cubic-bezier(.4,0,.2,1);
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0.6); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    .win-emoji { font-size: 64px; }
+    .win-title {
+      font-family: 'Fredoka One';
+      font-size: 34px;
+      color: var(--blue);
+      margin: 8px 0 4px;
+    }
+    .win-final-scores {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      margin: 12px 0;
+    }
+    .win-score-box {
+      border-radius: 16px;
+      padding: 10px 20px;
+      text-align: center;
+      font-family: 'Fredoka One';
+    }
+    .win-score-box.p1 { background: #fff0f0; color: #ff4757; }
+    .win-score-box.p2 { background: #fffbf0; color: #ffa502; }
+    .win-score-box .wsb-name { font-size: 13px; }
+    .win-score-box .wsb-pts  { font-size: 32px; line-height: 1; }
+    .win-msg {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--purple);
+      margin-bottom: 20px;
+    }
+    .play-again-btn {
+      font-family: 'Fredoka One';
+      font-size: 20px;
+      border: none;
+      border-radius: 50px;
+      padding: 12px 32px;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      color: white;
+      box-shadow: 0 5px 0 rgba(0,0,0,0.15);
+      transition: all 0.2s;
+    }
+    .play-again-btn:hover { transform: translateY(-2px); }
+
+    /* ── Confetti ── */
+    .confetti-piece {
+      position: fixed;
+      width: 10px; height: 14px;
+      top: -20px;
+      border-radius: 3px;
+      animation: confettiFall linear forwards;
+      z-index: 200;
+      pointer-events: none;
+    }
+    @keyframes confettiFall {
+      to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+    }
+
+    /* ── Match burst ── */
+    @keyframes burst {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.18); }
+      70%  { transform: scale(0.94); }
+      100% { transform: scale(1); }
+    }
+    .card.matched { animation: burst 0.5s ease; }
+
+    /* ── Teach overlay ── */
+    .teach-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 30, 70, 0.88);
+      z-index: 150;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+      padding: 16px;
+    }
+    .teach-overlay.show { display: flex; }
+
+    .teach-box {
+      background: white;
+      border-radius: 32px;
+      padding: 28px 24px 28px;
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+      animation: popIn 0.35s cubic-bezier(.4,0,.2,1);
+      position: relative;
+    }
+
+    .teach-counter {
+      font-family: 'Fredoka One';
+      font-size: 15px;
+      color: #bbb;
+      margin-bottom: 8px;
+    }
+
+    .teach-slide-img {
+      width: 240px;
+      height: 180px;
+      object-fit: cover;
+      border-radius: 18px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      display: block;
+      margin: 0 auto 4px;
+      transition: opacity 0.15s, transform 0.15s;
+    }
+
+    .teach-slide-placeholder {
+      width: 240px;
+      height: 180px;
+      border-radius: 18px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 4px;
+      background: linear-gradient(135deg, #a8c0ff 0%, #3f2b96 100%);
+    }
+
+    .teach-slide-emoji {
+      font-size: 72px;
+    }
+
+    .teach-slide-word-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin: 12px 0 16px;
+    }
+
+    .teach-slide-word {
+      font-family: 'Fredoka One';
+      font-size: 38px;
+      color: var(--dark);
+      transition: opacity 0.15s;
+    }
+
+    .btn-speak-slide {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: none;
+      background: var(--bg);
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      box-shadow: 0 3px 0 #ddd;
+    }
+    .btn-speak-slide:hover { transform: scale(1.05); }
+
+    .teach-nav {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .nav-btn {
+      font-family: 'Fredoka One';
+      font-size: 22px;
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      background: var(--bg);
+      color: var(--dark);
+      box-shadow: 0 4px 0 #ddd;
+      transition: all 0.18s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .nav-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #ddd; }
+    .nav-btn:disabled { opacity: 0.3; cursor: default; transform: none; }
+
+    .slide-dots {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      flex-wrap: wrap;
+      max-width: 300px;
+      margin: 0 auto;
+    }
+
+    .slide-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #ddd;
+      transition: background 0.2s, transform 0.2s;
+      cursor: pointer;
+    }
+    .slide-dot.active { background: var(--blue); transform: scale(1.3); }
+
+    .teach-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .teach-play-btn {
+      font-family: 'Fredoka One';
+      font-size: 18px;
+      border: none;
+      border-radius: 50px;
+      padding: 11px 28px;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--green), var(--blue));
+      color: white;
+      box-shadow: 0 5px 0 rgba(0,0,0,0.15);
+      transition: all 0.2s;
+    }
+    .teach-play-btn:hover { transform: translateY(-2px); }
+
+    .teach-close-btn {
+      font-family: 'Fredoka One';
+      font-size: 15px;
+      border: 3px solid #ddd;
+      border-radius: 50px;
+      padding: 11px 22px;
+      cursor: pointer;
+      background: white;
+      color: #999;
+      transition: all 0.2s;
+    }
+    .teach-close-btn:hover { border-color: var(--blue); color: var(--blue); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="title">🗺️ Places Memory! 📍</div>
+  <div class="subtitle">Find the matching place!</div>
+</header>
+
+<div class="scoreboard">
+  <div class="player-score" id="p1-score">
+    <div class="player-name">🔴 Player 1</div>
+    <div class="player-pts" id="p1-pts">0</div>
+  </div>
+  <div class="turn-arrow" id="turn-arrow">▶</div>
+  <div class="player-score" id="p2-score">
+    <div class="player-name">🟡 Player 2</div>
+    <div class="player-pts" id="p2-pts">0</div>
+  </div>
+  <div class="pairs-left" id="pairs-left"></div>
+</div>
+
+<div class="diff-row">
+  <button class="diff-btn active" id="btn-easy"    onclick="setDiff('easy')">🌱 Easy</button>
+  <button class="diff-btn"        id="btn-medium"  onclick="setDiff('medium')">🌟 Medium</button>
+  <button class="diff-btn"        id="btn-hard"    onclick="setDiff('hard')">🔥 Hard</button>
+  <button class="diff-btn"        id="btn-mega"    onclick="setDiff('mega')">🚀 Mega</button>
+  <button class="sound-toggle-btn active" id="btn-sound" onclick="toggleSound()">🔊 Sound</button>
+  <button class="reset-btn" style="background:var(--purple);" onclick="openTeach()">📚 Teach</button>
+  <button class="reset-btn"                         onclick="startGame()">🔄 New Game</button>
+</div>
+
+<div class="grid-wrap">
+  <div class="grid" id="grid"></div>
+</div>
+
+<!-- Study Overlay Screen -->
+<div class="teach-overlay" id="teach-overlay">
+  <div class="teach-box">
+    <div class="teach-counter" id="teach-counter">1 / 24</div>
+    <img class="teach-slide-img" id="slide-img" src="" alt="Place image" style="display:none;">
+    <div class="teach-slide-placeholder" id="slide-placeholder" style="display:none;">
+      <div class="teach-slide-emoji" id="slide-emoji"></div>
+    </div>
+    <div class="teach-slide-word-container">
+      <div class="teach-slide-word" id="slide-word">Place</div>
+      <button class="btn-speak-slide" onclick="speakCurrentWord()" title="Speak Word">🔊</button>
+    </div>
+    <!-- Thai translation container (hidden by default) -->
+    <div id="slide-thai-container" style="display:none; align-items:center; justify-content:center; gap:8px; margin-top:-10px; margin-bottom:12px;">
+      <div id="slide-thai-word" style="font-family: 'Nunito'; font-size:24px; color:var(--purple); font-weight:800;">โรงเรียน</div>
+    </div>
+    <div class="teach-nav">
+      <button class="nav-btn" id="prev-btn" onclick="teachNav(-1)">◀</button>
+      <div class="slide-dots" id="slide-dots"></div>
+      <button class="nav-btn" id="next-btn" onclick="teachNav(1)">▶</button>
+    </div>
+    <div class="teach-actions">
+      <button class="teach-play-btn" onclick="closeTeachAndPlay()">▶ Let's Play! 🎮</button>
+      <button class="teach-close-btn" id="btn-toggle-thai" style="background:white; border-color:#ddd; color:#999;" onclick="toggleThai()">🇹🇭 Thai: Off</button>
+      <button class="teach-close-btn" onclick="closeTeach()">✕ Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Winner Pop-up Overlay -->
+<div class="overlay" id="overlay">
+  <div class="win-box">
+    <div class="win-emoji" id="win-emoji">🎉</div>
+    <div class="win-title" id="win-title">Game Over!</div>
+    <div class="win-final-scores">
+      <div class="win-score-box p1"><div class="wsb-name">🔴 Player 1</div><div class="wsb-pts" id="win-p1-pts">0</div></div>
+      <div class="win-score-box p2"><div class="wsb-name">🟡 Player 2</div><div class="wsb-pts" id="win-p2-pts">0</div></div>
+    </div>
+    <div class="win-msg" id="win-msg"></div>
+    <button class="play-again-btn" onclick="startGame()">Play Again! 🗺️</button>
+  </div>
+</div>
+
+<!-- Load Shared Places Script -->
+<script src="images/places/places.js?v=2"></script>
+
+<script>
+  // ─── Dynamic Sound Effects (Web Audio API Synth) ───
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  let soundEnabled = true;
+
+  function playBeep(type) {
+    if (!soundEnabled) return;
+    
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    const now = audioCtx.currentTime;
+
+    if (type === 'flip') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.exponentialRampToValueAtTime(150, now + 0.15);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      osc.start(now);
+      osc.stop(now + 0.15);
+    } else if (type === 'match') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523.25, now); // C5
+      osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
+      osc.frequency.setValueAtTime(783.99, now + 0.16); // G5
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc.start(now);
+      osc.stop(now + 0.35);
+    } else if (type === 'miss') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.setValueAtTime(180, now + 0.12);
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+      osc.start(now);
+      osc.stop(now + 0.28);
+    } else if (type === 'win') {
+      const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
+      notes.forEach((f, idx) => {
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.type = 'triangle';
+        osc2.frequency.setValueAtTime(f, now + idx * 0.08);
+        gain2.gain.setValueAtTime(0.08, now + idx * 0.08);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.4);
+        osc2.start(now + idx * 0.08);
+        osc2.stop(now + idx * 0.08 + 0.4);
+      });
+    } else if (type === 'click') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(400, now);
+      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+      osc.start(now);
+      osc.stop(now + 0.05);
+    }
+  }
+
+  function toggleSound() {
+    soundEnabled = !soundEnabled;
+    const btn = document.getElementById('btn-sound');
+    btn.textContent = soundEnabled ? '🔊 Sound' : '🔇 Muted';
+    btn.classList.toggle('active', soundEnabled);
+    playBeep('click');
+  }
+
+  // Sizing and grid settings
+  const CONFIGS = {
+    easy:   { pairs: 6,  cols: 4, cardW: 110, cardH: 140 },
+    medium: { pairs: 12, cols: 6, cardW: 100, cardH: 128 },
+    hard:   { pairs: 18, cols: 6, cardW: 90,  cardH: 115 },
+    mega:   { pairs: 24, cols: 8, cardW: 80,  cardH: 100 }
+  };
+
+  let difficulty = 'easy';
+  let flipped = [];
+  let lock = false;
+  let scores = [0, 0];
+  let currentPlayer = 1;
+  let totalPairs = 0;
+  let matched = 0;
+
+  function setDiff(d) {
+    playBeep('click');
+    difficulty = d;
+    document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-' + d).classList.add('active');
+    startGame();
+  }
+
+  function startGame() {
+    scores = [0, 0];
+    currentPlayer = 1;
+    matched = 0;
+    flipped = [];
+    lock = false;
+
+    const cfg = CONFIGS[difficulty];
+    totalPairs = cfg.pairs;
+
+    updateScoreboard();
+    updatePairsLeft();
+
+    // Select random cards from PLACES_DATA
+    const pool = [...PLACES_DATA].sort(() => Math.random() - 0.5).slice(0, cfg.pairs);
+    const deck = [...pool, ...pool].sort(() => Math.random() - 0.5);
+
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    grid.style.gridTemplateColumns = `repeat(${cfg.cols}, ${cfg.cardW}px)`;
+
+    deck.forEach((item, i) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.style.width  = cfg.cardW + 'px';
+      card.style.height = cfg.cardH + 'px';
+      card.dataset.placeWord = item.w;
+      
+      let cardFaceContent = '';
+      if (item.file) {
+        cardFaceContent = `<img class="card-img" src="images/places/${item.file}" alt="${item.w}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                           <div class="card-placeholder-gradient" style="display:none;"><div class="card-emoji">${item.emoji}</div></div>`;
+      } else {
+        cardFaceContent = `<div class="card-placeholder-gradient"><div class="card-emoji">${item.emoji}</div></div>`;
+      }
+
+      card.innerHTML = `
+        <div class="card-inner">
+          <div class="card-face card-back">
+            <div class="card-back-inner">${i + 1}</div>
+          </div>
+          <div class="card-face card-front">
+            ${cardFaceContent}
+            <div class="card-word">${item.w}</div>
+          </div>
+        </div>`;
+      card.addEventListener('click', () => flipCard(card));
+      grid.appendChild(card);
+    });
+
+    document.getElementById('overlay').classList.remove('show');
+  }
+
+  function flipCard(card) {
+    if (lock || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+
+    playBeep('flip');
+    card.classList.add('flipped');
+    flipped.push(card);
+
+    if (flipped.length === 2) {
+      lock = true;
+      const [a, b] = flipped;
+
+      if (a.dataset.placeWord === b.dataset.placeWord) {
+        scores[currentPlayer - 1]++;
+        matched++;
+        const pClass = 'matched-p' + currentPlayer;
+        setTimeout(() => {
+          playBeep('match');
+          a.classList.add('matched', pClass);
+          b.classList.add('matched', pClass);
+          flipped = [];
+          lock = false;
+          updateScoreboard();
+          updatePairsLeft();
+          if (matched === totalPairs) setTimeout(endGame, 400);
+        }, 400);
+      } else {
+        setTimeout(() => {
+          playBeep('miss');
+          a.classList.remove('flipped');
+          b.classList.remove('flipped');
+          flipped = [];
+          lock = false;
+          currentPlayer = currentPlayer === 1 ? 2 : 1;
+          updateScoreboard();
+        }, 1100);
+      }
+    }
+  }
+
+  function updateScoreboard() {
+    document.getElementById('p1-pts').textContent = scores[0];
+    document.getElementById('p2-pts').textContent = scores[1];
+    const p1el = document.getElementById('p1-score');
+    const p2el = document.getElementById('p2-score');
+    const arrow = document.getElementById('turn-arrow');
+    p1el.className = 'player-score' + (currentPlayer === 1 ? ' active-p1' : '');
+    p2el.className = 'player-score' + (currentPlayer === 2 ? ' active-p2' : '');
+    arrow.textContent = currentPlayer === 1 ? '▶' : '◀';
+  }
+
+  function updatePairsLeft() {
+    const left = totalPairs - matched;
+    document.getElementById('pairs-left').textContent =
+      left > 0 ? `${left} pair${left !== 1 ? 's' : ''} left` : '';
+  }
+
+  function endGame() {
+    playBeep('win');
+    const [s1, s2] = scores;
+    let emoji, title, msg;
+    if (s1 > s2) {
+      emoji = '🏆'; title = '🔴 Player 1 Wins!'; msg = `Player 1 wins with ${s1} pairs! Great memory! 🌟`;
+    } else if (s2 > s1) {
+      emoji = '🏆'; title = '🟡 Player 2 Wins!'; msg = `Player 2 wins with ${s2} pairs! Amazing! 🌟`;
+    } else {
+      emoji = '🤝'; title = 'It\'s a Tie!'; msg = `Both players got ${s1} pairs — fantastic! 🤝`;
+    }
+    document.getElementById('win-emoji').textContent = emoji;
+    document.getElementById('win-title').textContent = title;
+    document.getElementById('win-p1-pts').textContent = s1;
+    document.getElementById('win-p2-pts').textContent = s2;
+    document.getElementById('win-msg').textContent = msg;
+    document.getElementById('overlay').classList.add('show');
+    launchConfetti();
+  }
+
+  function launchConfetti() {
+    const colors = ['#1e90ff','#FFD93D','#FF6B9D','#6BCB77','#4ECDC4','#9B59B6'];
+    for (let i = 0; i < 60; i++) {
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      piece.style.left = Math.random() * 100 + 'vw';
+      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+      piece.style.animationDuration = (1.5 + Math.random() * 2) + 's';
+      piece.style.animationDelay = (Math.random() * 0.8) + 's';
+      piece.style.transform = `rotate(${Math.random() * 360}deg)`;
+      document.body.appendChild(piece);
+      piece.addEventListener('animationend', () => piece.remove());
+    }
+  }
+
+  // ─── Teach overlay / Study Room functions ───
+  let teachIndex = 0;
+  let showThai = false;
+
+  function toggleThai() {
+    playBeep('click');
+    showThai = !showThai;
+    const btn = document.getElementById('btn-toggle-thai');
+    btn.textContent = showThai ? '🇹🇭 Thai: On' : '🇹🇭 Thai: Off';
+    btn.style.background = showThai ? '#e8f5e9' : 'white';
+    btn.style.color = showThai ? '#2e7d32' : '#999';
+    btn.style.borderColor = showThai ? '#2e7d32' : '#ddd';
+    renderSlide();
+  }
+
+  function openTeach() {
+    playBeep('click');
+    teachIndex = 0;
+    showThai = false;
+    const btn = document.getElementById('btn-toggle-thai');
+    btn.textContent = '🇹🇭 Thai: Off';
+    btn.style.background = 'white';
+    btn.style.color = '#999';
+    btn.style.borderColor = '#ddd';
+    
+    const dotsEl = document.getElementById('slide-dots');
+    dotsEl.innerHTML = '';
+    PLACES_DATA.forEach((_, i) => {
+      const dot = document.createElement('div');
+      dot.className = 'slide-dot' + (i === 0 ? ' active' : '');
+      dot.addEventListener('click', () => { teachIndex = i; renderSlide(); });
+      dotsEl.appendChild(dot);
+    });
+    renderSlide();
+    document.getElementById('teach-overlay').classList.add('show');
+  }
+
+  function renderSlide() {
+    const item = PLACES_DATA[teachIndex];
+    const imgEl = document.getElementById('slide-img');
+    const placeholderEl = document.getElementById('slide-placeholder');
+    const emojiEl = document.getElementById('slide-emoji');
+    const wordEl = document.getElementById('slide-word');
+    
+    const thaiContainer = document.getElementById('slide-thai-container');
+    const thaiWordEl = document.getElementById('slide-thai-word');
+
+    imgEl.style.opacity = '0'; imgEl.style.transform = 'scale(0.85)';
+    placeholderEl.style.opacity = '0'; placeholderEl.style.transform = 'scale(0.85)';
+    wordEl.style.opacity = '0';
+
+    setTimeout(() => {
+      if (item.file) {
+        imgEl.src = `images/places/${item.file}`;
+        imgEl.alt = item.w;
+        imgEl.style.display = 'block';
+        placeholderEl.style.display = 'none';
+        imgEl.style.opacity = '1'; imgEl.style.transform = 'scale(1)';
+      } else {
+        emojiEl.textContent = item.emoji;
+        imgEl.style.display = 'none';
+        placeholderEl.style.display = 'flex';
+        placeholderEl.style.opacity = '1'; placeholderEl.style.transform = 'scale(1)';
+      }
+
+      wordEl.textContent = item.w;
+      wordEl.style.opacity = '1';
+
+      if (showThai) {
+        thaiWordEl.textContent = item.th || '';
+        thaiContainer.style.display = 'flex';
+      } else {
+        thaiContainer.style.display = 'none';
+      }
+    }, 120);
+
+    document.getElementById('teach-counter').textContent = `${teachIndex + 1} / ${PLACES_DATA.length}`;
+    document.getElementById('prev-btn').disabled = teachIndex === 0;
+    document.getElementById('next-btn').disabled = teachIndex === PLACES_DATA.length - 1;
+    document.querySelectorAll('.slide-dot').forEach((d, i) => d.classList.toggle('active', i === teachIndex));
+  }
+
+  function teachNav(dir) {
+    playBeep('click');
+    teachIndex = Math.max(0, Math.min(PLACES_DATA.length - 1, teachIndex + dir));
+    renderSlide();
+  }
+
+  function speakCurrentWord() {
+    const item = PLACES_DATA[teachIndex];
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(item.w);
+      utterance.lang = 'en-US';
+      utterance.rate = 0.9;
+      window.speechSynthesis.speak(utterance);
+    } else {
+      alert("Text-to-speech not supported in this browser.");
+    }
+  }
+
+
+
+  function closeTeach() {
+    playBeep('click');
+    document.getElementById('teach-overlay').classList.remove('show');
+  }
+
+  function closeTeachAndPlay() {
+    closeTeach();
+    startGame();
+  }
+
+  // Initialize first game on load
+  startGame();
+</script>
+</body>
+</html>

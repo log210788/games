@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect 4 – Simple Questions</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --p1: #ff4757;
+            --p2: #ffa502;
+            --board: #3b82f6;
+            --board-shadow: #1d4ed8;
+            --bg: #f0f6ff;
+            --card-border: #2563eb;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: var(--bg);
+            margin: 0;
+            padding: 20px 10px 40px;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-family: 'Fredoka One', cursive;
+            font-size: 2.2rem;
+            color: #1e3a8a;
+            margin: 0 0 6px;
+            letter-spacing: 1px;
+            text-align: center;
+        }
+
+        .subtitle {
+            font-size: 0.95rem;
+            color: #4b5563;
+            margin-bottom: 20px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        /* ── STATUS BAR ───────────────────────────────────────────────────── */
+        .status-bar {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.6rem;
+            padding: 10px 36px;
+            border-radius: 50px;
+            margin-bottom: 20px;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            text-align: center;
+        }
+        .p1-turn { color: var(--p1); border: 4px solid var(--p1); }
+        .p2-turn { color: var(--p2); border: 4px solid var(--p2); }
+
+        /* ── CONNECT 4 BOARD ──────────────────────────────────────────────── */
+        .board-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .column-numbers {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            padding: 0 12px;
+            margin-bottom: 6px;
+            width: 100%;
+        }
+        .col-num {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.6rem;
+            color: #1e3a8a;
+            text-align: center;
+            background: white;
+            border-radius: 12px;
+            padding: 4px 0;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+            transition: transform 0.15s, background 0.15s;
+            cursor: pointer;
+            user-select: none;
+        }
+        .col-num:hover { background: #e8f0fe; transform: translateY(-3px); }
+        .col-num.full  { color: #ccc; background: #f0f0f0; cursor: not-allowed; transform: none; }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background: var(--board);
+            padding: 12px;
+            border-radius: 20px;
+            gap: 8px;
+            box-shadow: 0 10px 0 var(--board-shadow), 0 12px 30px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 8px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 12px;
+            transition: background 0.2s;
+        }
+        .column:hover { background: rgba(255,255,255,0.18); }
+
+        .slot {
+            width: 66px;
+            height: 66px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            border: 3px solid rgba(0,0,0,0.08);
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.15);
+            position: relative;
+        }
+        .slot.red    { background: var(--p1) !important; box-shadow: 0 0 12px rgba(255,71,87,0.6), inset 0 -3px 6px rgba(0,0,0,0.2); }
+        .slot.yellow { background: var(--p2) !important; box-shadow: 0 0 12px rgba(255,165,2,0.6), inset 0 -3px 6px rgba(0,0,0,0.2); }
+
+        @keyframes pieceDrop {
+            from { transform: translateY(var(--drop-y)); }
+            to   { transform: translateY(0); }
+        }
+        .slot.dropping { animation: pieceDrop 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+
+        .slot.win {
+            border: 4px solid gold !important;
+            animation: winPulse 0.7s ease-in-out infinite alternate;
+            z-index: 1;
+        }
+        @keyframes winPulse {
+            from { box-shadow: 0 0 10px 3px gold, inset 0 -3px 6px rgba(0,0,0,0.2); transform: scale(1); }
+            to   { box-shadow: 0 0 28px 10px gold, inset 0 -3px 6px rgba(0,0,0,0.2); transform: scale(1.12); }
+        }
+
+        /* ── QUESTION OVERLAY ─────────────────────────────────────────────── */
+        #overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.85);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        #q-card {
+            background: white;
+            padding: 30px 32px;
+            border-radius: 28px;
+            max-width: 520px;
+            width: 100%;
+            text-align: center;
+            border: 6px solid var(--board);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.7); opacity: 0; }
+            to   { transform: scale(1);   opacity: 1; }
+        }
+
+        .player-badge {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1rem;
+            padding: 5px 18px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 12px;
+            color: white;
+        }
+        .badge-red    { background: var(--p1); }
+        .badge-yellow { background: var(--p2); }
+
+        .q-emoji {
+            font-size: 5rem;
+            display: block;
+            margin: 5px 0 12px;
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            45%      { transform: translateY(-10px); }
+            65%      { transform: translateY(-5px); }
+        }
+
+        #q-text {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.8rem;
+            color: #1e3a8a;
+            margin-bottom: 8px;
+            line-height: 1.35;
+        }
+
+        #q-translation {
+            font-size: 1.25rem;
+            color: #6b7280;
+            font-weight: 700;
+            margin-bottom: 14px;
+            min-height: 28px;
+            font-style: italic;
+            display: none;
+        }
+
+        .btn-translate {
+            background: #e0f2fe;
+            color: #0369a1;
+            font-size: 0.85rem;
+            padding: 8px 16px;
+            border-radius: 12px;
+            margin-bottom: 18px;
+            border: 2px solid #bae6fd;
+            font-family: 'Fredoka One', cursive;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-translate:hover {
+            background: #bae6fd;
+            transform: scale(1.05);
+        }
+
+        /* Chips list */
+        .chips-title {
+            font-size: 0.9rem;
+            font-weight: 800;
+            color: #6b7280;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 22px;
+            min-height: 60px;
+        }
+        .chip {
+            font-family: 'Fredoka One', cursive;
+            font-size: 0.95rem;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: #f1f5f9;
+            color: #475569;
+            border: 2px solid #cbd5e1;
+            user-select: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.15s;
+        }
+        .chip.highlight-correct {
+            background: #dcfce7;
+            color: #15803d;
+            border-color: #86efac;
+            transform: scale(1.1);
+            box-shadow: 0 0 10px rgba(74, 222, 128, 0.4);
+        }
+
+        #answer-reveal-box {
+            margin-bottom: 18px;
+        }
+        .btn-reveal {
+            background: #f3f4f6;
+            color: #4b5563;
+            border: 2px dashed #d1d5db;
+            font-size: 0.9rem;
+            padding: 8px 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 800;
+            font-family: 'Nunito', sans-serif;
+            transition: background 0.2s;
+        }
+        .btn-reveal:hover {
+            background: #e5e7eb;
+        }
+
+        .revealed-answer {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #16a34a;
+            margin-top: 10px;
+            font-family: 'Fredoka One', cursive;
+            animation: popIn 0.25s ease-out;
+        }
+
+        /* Judge buttons */
+        .judge-btns { display: flex; gap: 16px; justify-content: center; }
+        .btn {
+            padding: 14px 28px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            font-weight: 800;
+            font-family: 'Nunito', sans-serif;
+            transition: transform 0.15s, box-shadow 0.15s;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+        }
+        .btn:hover  { transform: translateY(-2px); box-shadow: 0 6px 0 rgba(0,0,0,0.15); }
+        .btn:active { transform: translateY(2px);  box-shadow: 0 2px 0 rgba(0,0,0,0.15); }
+        .btn-yes { background: #22c55e; color: white; }
+        .btn-no  { background: #e5e7eb; color: #4b5563; }
+
+        /* ── WIN OVERLAY ──────────────────────────────────────────────────── */
+        #win-overlay {
+            position: fixed;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            z-index: 2000;
+        }
+        #win-overlay.show { display: block; }
+        #win-card {
+            background: white;
+            padding: 24px 44px 20px;
+            border-radius: 26px;
+            text-align: center;
+            border: 5px solid var(--board);
+            box-shadow: 0 12px 50px rgba(0,0,0,0.3);
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            white-space: nowrap;
+        }
+        #win-card h2 { font-family: 'Fredoka One', cursive; font-size: 2.4rem; margin: 0 0 6px; }
+        #win-card p  { font-size: 1.05rem; color: #555; margin-bottom: 14px; }
+        .win-icons   { font-size: 1.9rem; margin-bottom: 12px; }
+        .btn-restart { background: var(--board); color: white; padding: 12px 32px; font-size: 1.05rem; }
+
+        /* ── PANELS CONTAINER (Bottom Section) ────────────────────────────── */
+        .panels-container {
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+            gap: 20px;
+            width: 100%;
+            max-width: 600px;
+            margin-top: 10px;
+        }
+
+        .how-to-play, .teams-panel {
+            background: white;
+            border-radius: 20px;
+            padding: 18px 16px;
+            flex: 1;
+            box-shadow: 0 6px 28px rgba(0,0,0,0.08);
+            border: 3px solid var(--board);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .htp-lang-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            margin-bottom: 12px;
+            background: #f1f5f9;
+            padding: 3px;
+            border-radius: 30px;
+            border: 1px solid #e2e8f0;
+        }
+        .lang-btn {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 5px 10px;
+            font-family: 'Fredoka One', cursive;
+            font-size: 0.75rem;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #64748b;
+        }
+        .lang-btn.active {
+            background: var(--board);
+            color: white;
+            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+        }
+
+        .panel-title {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1rem;
+            color: var(--board);
+            text-align: center;
+            margin-bottom: 12px;
+            border-bottom: 2px solid var(--board);
+            padding-bottom: 8px;
+        }
+
+        .htp-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 10px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #334155;
+            line-height: 1.35;
+        }
+        .htp-num {
+            background: var(--board);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Fredoka One', cursive;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+
+        .htp-mini-board {
+            display: grid;
+            grid-template-columns: repeat(4, 14px);
+            gap: 3px;
+            background: var(--board);
+            padding: 4px;
+            border-radius: 6px;
+            margin: 8px auto 4px;
+            width: fit-content;
+        }
+        .htp-dot { width: 14px; height: 14px; border-radius: 50%; background: rgba(255,255,255,0.25); }
+        .htp-dot.r { background: #ff4757; }
+        .htp-dot.y { background: #ffa502; }
+        .htp-legend { display: flex; gap: 8px; justify-content: center; margin-top: 10px; font-size: 0.75rem; font-weight: 800; }
+
+        /* Teams Form */
+        .team-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 10px;
+        }
+        .team-group:last-child { margin-bottom: 0; }
+        .team-label {
+            font-family: 'Fredoka One', cursive;
+            font-size: 0.85rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .team-label.red { color: var(--p1); }
+        .team-label.yellow { color: #d97706; }
+        
+        .team-input {
+            width: 100%;
+            height: 70px;
+            font-family: 'Nunito', sans-serif;
+            font-size: 0.85rem;
+            border-radius: 10px;
+            padding: 8px;
+            resize: none;
+            outline: none;
+            transition: all 0.2s;
+            border: 2px solid #cbd5e1;
+        }
+        .team-input.red { border-color: #fca5a5; background: #fff5f5; }
+        .team-input.red:focus { border-color: var(--p1); box-shadow: 0 0 6px rgba(255,71,87,0.2); }
+        .team-input.yellow { border-color: #fde047; background: #fefdf0; }
+        .team-input.yellow:focus { border-color: var(--p2); box-shadow: 0 0 6px rgba(255,165,2,0.25); }
+
+        /* ── RESPONSIVE ───────────────────────────────────────────────────── */
+        @media (max-width: 560px) {
+            .slot { width: 40px; height: 40px; }
+            .board { gap: 5px; padding: 8px; }
+            #q-text { font-size: 1.4rem; }
+            .panels-container {
+                flex-direction: column;
+                align-items: center;
+                max-width: 320px;
+            }
+            .how-to-play, .teams-panel {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<h1 id="page-title">🗣️ Simple Questions</h1>
+<p id="page-subtitle" class="subtitle">Answer and Connect 4 to win!</p>
+
+<div id="status" class="status-bar p1-turn">🔴 Red Player's Turn</div>
+
+<div class="board-wrapper">
+    <div class="column-numbers" id="col-nums">
+        <div class="col-num" onclick="handleColumnClick(0)">1</div>
+        <div class="col-num" onclick="handleColumnClick(1)">2</div>
+        <div class="col-num" onclick="handleColumnClick(2)">3</div>
+        <div class="col-num" onclick="handleColumnClick(3)">4</div>
+        <div class="col-num" onclick="handleColumnClick(4)">5</div>
+        <div class="col-num" onclick="handleColumnClick(5)">6</div>
+        <div class="col-num" onclick="handleColumnClick(6)">7</div>
+    </div>
+    <div class="board" id="board"></div>
+</div>
+
+<!-- Question Overlay -->
+<div id="overlay">
+    <div id="q-card">
+        <div id="player-badge" class="player-badge badge-red">🔴 Red's Turn</div>
+        <span class="q-emoji" id="q-emoji">💬</span>
+        <div id="q-text">Question?</div>
+        <div id="q-translation">Vietnamese?</div>
+        
+        <button id="btn-translate-toggle" class="btn-translate" onclick="toggleCardTranslation()">🇻🇳 Show Translation</button>
+        
+        <div class="chips-title" id="chips-title">Suggested Answers / Từ gợi ý:</div>
+        <div class="chips"></div>
+
+        <div id="answer-reveal-box" style="display: none;">
+            <button id="btn-reveal-answer" class="btn-reveal" onclick="toggleAnswerReveal()">👁️ Show Correct Answer</button>
+            <div id="revealed-answer-text" class="revealed-answer" style="display: none;">Answer: Job</div>
+        </div>
+
+        <div class="judge-btns">
+            <button class="btn btn-no" id="btn-judge-no" onclick="handleJudge(false)">❌ Try Again</button>
+            <button class="btn btn-yes" id="btn-judge-yes" onclick="handleJudge(true)">✅ Good answer!</button>
+        </div>
+    </div>
+</div>
+
+<!-- Win Banner -->
+<div id="win-overlay">
+    <div id="win-card">
+        <h2 id="win-title">🎉 Red Wins!</h2>
+        <p id="win-text">Amazing — well done! 🌟</p>
+        <div class="win-icons">🏆 🗣️ ⭐</div>
+        <button class="btn btn-restart" id="btn-play-again" onclick="location.reload()">🔄 Play Again</button>
+    </div>
+</div>
+
+<div class="panels-container">
+    <div class="how-to-play">
+        <div class="htp-lang-toggle">
+            <button class="lang-btn active" id="lang-en" onclick="setLanguage('en')">EN</button>
+            <button class="lang-btn" id="lang-vi" onclick="setLanguage('vi')">VI</button>
+        </div>
+        <div class="panel-title" id="htp-title">📖 How to Play</div>
+        <div class="htp-step"><div class="htp-num">1</div><div id="htp-step-1">Pick a column (1–7)</div></div>
+        <div class="htp-step"><div class="htp-num">2</div><div id="htp-step-2">Answer the question!</div></div>
+        <div class="htp-step"><div class="htp-num">3</div><div id="htp-step-3">Good answer = piece drops!</div></div>
+        <div class="htp-step"><div class="htp-num">4</div><div id="htp-step-4">Connect 4 in a row to win!</div></div>
+        <div class="htp-mini-board">
+            <div class="htp-dot"></div><div class="htp-dot"></div><div class="htp-dot r"></div><div class="htp-dot"></div>
+            <div class="htp-dot"></div><div class="htp-dot r"></div><div class="htp-dot y"></div><div class="htp-dot"></div>
+            <div class="htp-dot r"></div><div class="htp-dot y"></div><div class="htp-dot y"></div><div class="htp-dot"></div>
+            <div class="htp-dot r"></div><div class="htp-dot r"></div><div class="htp-dot r"></div><div class="htp-dot r"></div>
+        </div>
+        <div class="htp-legend"><span id="legend-red">🔴 Red</span><span id="legend-yellow">🟡 Yellow</span></div>
+    </div>
+
+    <div class="teams-panel">
+        <div class="panel-title" id="teams-title">👥 Teams</div>
+        <div class="team-group">
+            <label class="team-label red" id="team-red-label">🔴 Red Team</label>
+            <textarea class="team-input red" id="team-red-input" placeholder="Type player names..." oninput="saveTeams()"></textarea>
+        </div>
+        <div class="team-group">
+            <label class="team-label yellow" id="team-yellow-label">🟡 Yellow Team</label>
+            <textarea class="team-input yellow" id="team-yellow-input" placeholder="Type player names..." oninput="saveTeams()"></textarea>
+        </div>
+    </div>
+</div>
+
+<script>
+    const ROWS = 6, COLS = 7;
+    let currentPlayer = 1;
+    let boardState = Array(COLS).fill(null).map(() => Array(ROWS).fill(null));
+    let activeCol = null;
+
+    let currentQuestion = null;
+    let currentLang = 'en';
+    let cardTranslationVisible = false;
+    let answerVisible = false;
+
+    // ─── TRANSLATIONS ──────────────────────────────────────────────────────
+    const translations = {
+        en: {
+            pageTitle: '🗣️ Simple Questions',
+            pageSubtitle: 'Answer and Connect 4 to win!',
+            htpTitle: '📖 How to Play',
+            htpStep1: 'Pick a column (1–7)',
+            htpStep2: 'Answer the question!',
+            htpStep3: 'Good answer = piece drops!',
+            htpStep4: 'Connect 4 in a row to win!',
+            legendRed: '🔴 Red',
+            legendYellow: '🟡 Yellow',
+            statusP1: "🔴 Red Player's Turn",
+            statusP2: "🟡 Yellow Player's Turn",
+            badgeRed: "🔴 Red's Turn",
+            badgeYellow: "🟡 Yellow's Turn",
+            btnTryAgain: "❌ Try Again",
+            btnGoodAnswer: "✅ Good answer!",
+            winTitleP1: "🎉 Red Wins!",
+            winTitleP2: "🎉 Yellow Wins!",
+            winText: "Amazing — well done! 🌟",
+            btnPlayAgain: "🔄 Play Again",
+            teamsTitle: '👥 Teams',
+            redTeam: '🔴 Red Team',
+            yellowTeam: '🟡 Yellow Team',
+            teamsPlaceholder: 'Type player names...',
+            showTranslation: '🇻🇳 Show Vietnamese',
+            hideTranslation: '🙈 Hide Vietnamese',
+            showEnglish: '🇬🇧 Show English',
+            hideEnglish: '🙈 Hide English',
+            showAnswer: '👁️ Show Correct Answer',
+            hideAnswer: '🙈 Hide Correct Answer',
+            chipsTitle: 'Suggested Answers:',
+            answerLabel: 'Answer: '
+        },
+        vi: {
+            pageTitle: '🗣️ Câu Hỏi Đơn Giản',
+            pageSubtitle: 'Trả lời và Kết nối 4 quân để thắng!',
+            htpTitle: '📖 Cách chơi',
+            htpStep1: 'Chọn một cột (1–7)',
+            htpStep2: 'Trả lời câu hỏi!',
+            htpStep3: 'Trả lời đúng = thả quân cờ!',
+            htpStep4: 'Xếp 4 quân liền nhau để thắng!',
+            legendRed: '🔴 Đỏ',
+            legendYellow: '🟡 Vàng',
+            statusP1: "🔴 Đến lượt người chơi Đỏ",
+            statusP2: "🟡 Đến lượt người chơi Vàng",
+            badgeRed: "🔴 Lượt của Đỏ",
+            badgeYellow: "🟡 Lượt của Vàng",
+            btnTryAgain: "❌ Thử lại",
+            btnGoodAnswer: "✅ Trả lời tốt!",
+            winTitleP1: "🎉 Đỏ thắng cuộc!",
+            winTitleP2: "🎉 Vàng thắng cuộc!",
+            winText: "Tuyệt vời — làm tốt lắm! 🌟",
+            btnPlayAgain: "🔄 Chơi lại",
+            teamsTitle: '👥 Các Đội',
+            redTeam: '🔴 Đội Đỏ',
+            yellowTeam: '🟡 Đội Vàng',
+            teamsPlaceholder: 'Nhập tên người chơi...',
+            showTranslation: '🇬🇧 Hiện Tiếng Anh',
+            hideTranslation: '🙈 Ẩn Tiếng Anh',
+            showEnglish: '🇻🇳 Hiện Tiếng Việt',
+            hideEnglish: '🙈 Ẩn Tiếng Việt',
+            showAnswer: '👁️ Xem đáp án',
+            hideAnswer: '🙈 Ẩn đáp án',
+            chipsTitle: 'Gợi ý trả lời:',
+            answerLabel: 'Đáp án: '
+        }
+    };
+
+    // ─── SIMPLE QUESTIONS DECK ─────────────────────────────────────────────
+    // Includes visual emojis, choice chips, and job roles specifically requested.
+    const questionsDeck = [
+        {
+            emoji: '🍕',
+            qEn: 'What is your favorite food?',
+            qVi: 'Món ăn yêu thích của bạn là gì?',
+            chipsEn: ['Pizza 🍕', 'Noodles 🍜', 'Burger 🍔', 'Ice cream 🍦', 'Rice 🍚', 'Fruit 🍎'],
+            chipsVi: ['Pizza 🍕', 'Mì sợi 🍜', 'Bánh mì kẹp 🍔', 'Kem 🍦', 'Cơm 🍚', 'Trái cây 🍎']
+        },
+        {
+            emoji: '⚽',
+            qEn: 'What sports do you like?',
+            qVi: 'Bạn thích môn thể thao nào?',
+            chipsEn: ['Football ⚽', 'Badminton 🏸', 'Swimming 🏊', 'Running 🏃', 'Chess ♟️', 'Basketball 🏀'],
+            chipsVi: ['Bóng đá ⚽', 'Cầu lông 🏸', 'Bơi lội 🏊', 'Chạy bộ 🏃', 'Cờ vua ♟️', 'Bóng rổ 🏀']
+        },
+        {
+            emoji: '☀️',
+            qEn: 'What is the weather like today?',
+            qVi: 'Thời tiết hôm nay thế nào?',
+            chipsEn: ['Sunny ☀️', 'Rainy 🌧️', 'Cloudy ☁️', 'Windy 💨', 'Hot 🥵', 'Cold 🥶'],
+            chipsVi: ['Nắng ☀️', 'Mưa 🌧️', 'Nhiều mây ☁️', 'Gió 💨', 'Nóng 🥵', 'Lạnh 🥶']
+        },
+        {
+            emoji: '🏸',
+            qEn: 'Do you prefer chess or badminton?',
+            qVi: 'Bạn thích chơi cờ vua hay cầu lông hơn?',
+            chipsEn: ['Chess ♟️', 'Badminton 🏸', 'Both! 😊', 'Neither 🤷'],
+            chipsVi: ['Cờ vua ♟️', 'Cầu lông 🏸', 'Cả hai! 😊', 'Không thích cả hai 🤷']
+        },
+        {
+            emoji: '🩺',
+            qEn: 'What do they do?',
+            qVi: 'Họ làm nghề gì?',
+            answerEn: 'Doctor',
+            answerVi: 'Bác sĩ',
+            chipsEn: ['Doctor 🩺', 'Nurse 👩‍⚕️', 'Teacher 👩‍🏫', 'Fireman 👨‍🚒'],
+            chipsVi: ['Bác sĩ 🩺', 'Y tá 👩‍⚕️', 'Giáo viên 👩‍🏫', 'Lính cứu hỏa 👨‍🚒']
+        },
+        {
+            emoji: '👩‍⚕️',
+            qEn: 'What do they do?',
+            qVi: 'Họ làm nghề gì?',
+            answerEn: 'Nurse',
+            answerVi: 'Y tá',
+            chipsEn: ['Doctor 🩺', 'Nurse 👩‍⚕️', 'Teacher 👩‍🏫', 'Fireman 👨‍🚒'],
+            chipsVi: ['Bác sĩ 🩺', 'Y tá 👩‍⚕️', 'Giáo viên 👩‍🏫', 'Lính cứu hỏa 👨‍🚒']
+        },
+        {
+            emoji: '👩‍🏫',
+            qEn: 'What do they do?',
+            qVi: 'Họ làm nghề gì?',
+            answerEn: 'Teacher',
+            answerVi: 'Giáo viên',
+            chipsEn: ['Doctor 🩺', 'Nurse 👩‍⚕️', 'Teacher 👩‍🏫', 'Fireman 👨‍🚒'],
+            chipsVi: ['Bác sĩ 🩺', 'Y tá 👩‍⚕️', 'Giáo viên 👩‍🏫', 'Lính cứu hỏa 👨‍🚒']
+        },
+        {
+            emoji: '👨‍🚒',
+            qEn: 'What do they do?',
+            qVi: 'Họ làm nghề gì?',
+            answerEn: 'Fireman',
+            answerVi: 'Lính cứu hỏa',
+            chipsEn: ['Doctor 🩺', 'Nurse 👩‍⚕️', 'Teacher 👩‍🏫', 'Fireman 👨‍🚒'],
+            chipsVi: ['Bác sĩ 🩺', 'Y tá 👩‍⚕️', 'Giáo viên 👩‍🏫', 'Lính cứu hỏa 👨‍🚒']
+        },
+        {
+            emoji: '🎒',
+            qEn: 'How do you go to school?',
+            qVi: 'Bạn đi học bằng phương tiện gì?',
+            chipsEn: ['Walk 🚶', 'Bicycle 🚲', 'Motorbike 🏍️', 'Car 🚗', 'Bus 🚌'],
+            chipsVi: ['Đi bộ 🚶', 'Xe đạp 🚲', 'Xe máy 🏍️', 'Ô tô 🚗', 'Xe buýt 🚌']
+        },
+        {
+            emoji: '🎨',
+            qEn: 'What is your favorite color?',
+            qVi: 'Màu sắc yêu thích của bạn là gì?',
+            chipsEn: ['Red 🔴', 'Blue 🔵', 'Green 🟢', 'Yellow 🟡', 'Pink 🌸', 'Purple 💜'],
+            chipsVi: ['Đỏ 🔴', 'Xanh dương 🔵', 'Xanh lá 🟢', 'Vàng 🟡', 'Hồng 🌸', 'Tím 💜']
+        },
+        {
+            emoji: '🐶',
+            qEn: 'What is your favorite animal?',
+            qVi: 'Con vật yêu thích của bạn là gì?',
+            chipsEn: ['Dog 🐶', 'Cat 🐱', 'Rabbit 🐰', 'Panda 🐼', 'Lion 🦁', 'Monkey 🐵'],
+            chipsVi: ['Chó 🐶', 'Mèo 🐱', 'Thỏ 🐰', 'Gấu trúc 🐼', 'Sư tử 🦁', 'Khỉ 🐵']
+        },
+        {
+            emoji: '📚',
+            qEn: 'What is your favorite subject?',
+            qVi: 'Môn học yêu thích của bạn là gì?',
+            chipsEn: ['Math ➕', 'English 🔤', 'Art 🎨', 'Music 🎵', 'Science 🔬', 'P.E. 🏃'],
+            chipsVi: ['Toán ➕', 'Tiếng Anh 🔤', 'Mỹ thuật 🎨', 'Âm nhạc 🎵', 'Khoa học 🔬', 'Thể dục 🏃']
+        },
+        {
+            emoji: '🥤',
+            qEn: 'What is your favorite drink?',
+            qVi: 'Đồ uống yêu thích của bạn là gì?',
+            chipsEn: ['Water 💧', 'Milk 🥛', 'Juice 🧃', 'Soda 🥤', 'Tea 🍵'],
+            chipsVi: ['Nước lọc 💧', 'Sữa 🥛', 'Nước trái cây 🧃', 'Nước ngọt 🥤', 'Trà 🍵']
+        },
+        {
+            emoji: '🍎',
+            qEn: 'What is your favorite fruit?',
+            qVi: 'Trái cây yêu thích của bạn là gì?',
+            chipsEn: ['Apple 🍎', 'Banana 🍌', 'Orange 🍊', 'Watermelon 🍉', 'Mango 🥭', 'Strawberry 🍓'],
+            chipsVi: ['Táo 🍎', 'Chuối 🍌', 'Cam 🍊', 'Dưa hấu 🍉', 'Xoài 🥭', 'Dâu tây 🍓']
+        },
+        {
+            emoji: '🌸',
+            qEn: 'What is your favorite season?',
+            qVi: 'Mùa yêu thích của bạn là gì?',
+            chipsEn: ['Spring 🌸', 'Summer ☀️', 'Autumn 🍂', 'Winter ❄️'],
+            chipsVi: ['Mùa xuân 🌸', 'Mùa hè ☀️', 'Mùa thu 🍂', 'Mùa đông ❄️']
+        },
+        {
+            emoji: '🎮',
+            qEn: 'What is your favorite hobby?',
+            qVi: 'Sở thích của bạn là gì?',
+            chipsEn: ['Playing games 🎮', 'Reading 📚', 'Drawing 🎨', 'Listening to music 🎵', 'Watching TV 📺'],
+            chipsVi: ['Chơi game 🎮', 'Đọc sách 📚', 'Vẽ tranh 🎨', 'Nghe nhạc 🎵', 'Xem TV 📺']
+        },
+        {
+            emoji: '🎂',
+            qEn: 'When is your birthday?',
+            qVi: 'Sinh nhật của bạn là khi nào?',
+            chipsEn: ['January ❄️', 'April 🌱', 'July ☀️', 'October 🍂', 'December 🎄'],
+            chipsVi: ['Tháng 1 ❄️', 'Tháng 4 🌱', 'Tháng 7 ☀️', 'Tháng 10 🍂', 'Tháng 12 🎄']
+        },
+        {
+            emoji: '🏫',
+            qEn: 'Where do you study?',
+            qVi: 'Bạn học ở đâu?',
+            chipsEn: ['At school 🏫', 'At home 🏠', 'At the library 📚', 'Online 💻'],
+            chipsVi: ['Ở trường 🏫', 'Ở nhà 🏠', 'Ở thư viện 📚', 'Trực tuyến 💻']
+        }
+    ];
+
+    let deck = [];
+    function getNextQuestion() {
+        if (deck.length === 0) {
+            deck = questionsDeck.map((_, i) => i).sort(() => Math.random() - 0.5);
+        }
+        return questionsDeck[deck.pop()];
+    }
+
+    // ─── AUDIO SYNTHESIZER ──────────────────────────────────────────────────
+    let audioCtx;
+    function getCtx() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        return audioCtx;
+    }
+    function playSound(type) {
+        try {
+            const ctx = getCtx();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            if (type === 'correct') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523, ctx.currentTime);
+                osc.frequency.setValueAtTime(659, ctx.currentTime + 0.15);
+                osc.frequency.setValueAtTime(784, ctx.currentTime + 0.28);
+            } else {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(200, ctx.currentTime);
+            }
+            gain.gain.setValueAtTime(0.08, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+            osc.start(); osc.stop(ctx.currentTime + 0.5);
+        } catch(e) {}
+    }
+
+    // ─── BOARD INITIALIZATION ──────────────────────────────────────────────
+    function initBoard() {
+        const board = document.getElementById('board');
+        board.innerHTML = '';
+        for (let c = 0; c < COLS; c++) {
+            const col = document.createElement('div');
+            col.className = 'column';
+            col.onclick = () => handleColumnClick(c);
+            for (let r = 0; r < ROWS; r++) {
+                const slot = document.createElement('div');
+                slot.className = 'slot';
+                slot.id = `slot-${c}-${r}`;
+                col.appendChild(slot);
+            }
+            board.appendChild(col);
+        }
+    }
+
+    function updateColumnNumbers() {
+        document.querySelectorAll('.col-num').forEach((el, c) => {
+            el.classList.toggle('full', boardState[c].indexOf(null) === -1);
+        });
+    }
+
+    // ─── GAMEPLAY HANDLERS ─────────────────────────────────────────────────
+    function handleColumnClick(c) {
+        if (boardState[c].indexOf(null) === -1) return;
+        activeCol = c;
+        currentQuestion = getNextQuestion();
+        cardTranslationVisible = false;
+        answerVisible = false;
+        
+        displayQuestion();
+        
+        const badge = document.getElementById('player-badge');
+        badge.innerText = currentPlayer === 1 ? translations[currentLang].badgeRed : translations[currentLang].badgeYellow;
+        badge.className = 'player-badge ' + (currentPlayer === 1 ? 'badge-red' : 'badge-yellow');
+        
+        document.getElementById('overlay').style.display = 'flex';
+    }
+
+    function displayQuestion() {
+        const emojiEl = document.getElementById('q-emoji');
+        const textEl = document.getElementById('q-text');
+        const translationEl = document.getElementById('q-translation');
+        const chipsEl = document.querySelector('.chips');
+        const answerBox = document.getElementById('answer-reveal-box');
+        const transBtn = document.getElementById('btn-translate-toggle');
+
+        emojiEl.innerText = currentQuestion.emoji;
+        
+        // Show English or Vietnamese question depending on main language
+        if (currentLang === 'en') {
+            textEl.innerText = currentQuestion.qEn;
+            translationEl.innerText = currentQuestion.qVi;
+        } else {
+            textEl.innerText = currentQuestion.qVi;
+            translationEl.innerText = currentQuestion.qEn;
+        }
+        
+        transBtn.innerText = cardTranslationVisible ? translations[currentLang].hideTranslation : translations[currentLang].showTranslation;
+        translationEl.style.display = cardTranslationVisible ? 'block' : 'none';
+
+        // Render visual choice chips
+        chipsEl.innerHTML = '';
+        const activeChips = currentLang === 'en' ? currentQuestion.chipsEn : currentQuestion.chipsVi;
+        
+        activeChips.forEach((chipText) => {
+            const span = document.createElement('span');
+            span.className = 'chip';
+            span.innerText = chipText;
+            
+            // Check if this chip matches the correct job answer (if applicable)
+            // Note: matching is case-insensitive and ignores icons
+            if (currentQuestion.answerEn) {
+                const answerText = currentLang === 'en' ? currentQuestion.answerEn : currentQuestion.answerVi;
+                if (chipText.toLowerCase().includes(answerText.toLowerCase())) {
+                    span.id = "correct-chip-highlight";
+                }
+            }
+            
+            chipsEl.appendChild(span);
+        });
+
+        // If it is a job-naming question ("What do they do?"), offer a "Reveal Answer" helper
+        if (currentQuestion.answerEn) {
+            answerBox.style.display = 'block';
+            const answerVal = currentLang === 'en' ? currentQuestion.answerEn : currentQuestion.answerVi;
+            document.getElementById('revealed-answer-text').innerText = translations[currentLang].answerLabel + answerVal;
+            document.getElementById('revealed-answer-text').style.display = answerVisible ? 'block' : 'none';
+            document.getElementById('btn-reveal-answer').innerText = answerVisible ? translations[currentLang].hideAnswer : translations[currentLang].showAnswer;
+        } else {
+            answerBox.style.display = 'none';
+        }
+    }
+
+    function toggleCardTranslation() {
+        cardTranslationVisible = !cardTranslationVisible;
+        const translationEl = document.getElementById('q-translation');
+        translationEl.style.display = cardTranslationVisible ? 'block' : 'none';
+        
+        const transBtn = document.getElementById('btn-translate-toggle');
+        transBtn.innerText = cardTranslationVisible ? translations[currentLang].hideTranslation : translations[currentLang].showTranslation;
+    }
+
+    function toggleAnswerReveal() {
+        answerVisible = !answerVisible;
+        const textEl = document.getElementById('revealed-answer-text');
+        textEl.style.display = answerVisible ? 'block' : 'none';
+        
+        const btn = document.getElementById('btn-reveal-answer');
+        btn.innerText = answerVisible ? translations[currentLang].hideAnswer : translations[currentLang].showAnswer;
+
+        // Highlight correct chip as well
+        const correctChip = document.getElementById('correct-chip-highlight');
+        if (correctChip) {
+            correctChip.classList.toggle('highlight-correct', answerVisible);
+        }
+    }
+
+    function handleJudge(isCorrect) {
+        document.getElementById('overlay').style.display = 'none';
+        if (!isCorrect) {
+            playSound('wrong');
+            return;
+        }
+        
+        playSound('correct');
+        const r = boardState[activeCol].indexOf(null);
+        boardState[activeCol][r] = currentPlayer;
+        const slot = document.getElementById(`slot-${activeCol}-${r}`);
+        slot.style.setProperty('--drop-y', `-${(ROWS - r) * 74}px`);
+        slot.className = `slot ${currentPlayer === 1 ? 'red' : 'yellow'} dropping`;
+        
+        slot.addEventListener('animationend', () => {
+            slot.classList.remove('dropping');
+        }, { once: true });
+        
+        updateColumnNumbers();
+        
+        const winCells = checkWin(activeCol, r);
+        if (winCells) {
+            setTimeout(() => showWin(currentPlayer, winCells), 300);
+            return;
+        }
+        
+        currentPlayer = currentPlayer === 1 ? 2 : 1;
+        updateStatus();
+    }
+
+    function updateStatus() {
+        const s = document.getElementById('status');
+        s.innerText = currentPlayer === 1 ? translations[currentLang].statusP1 : translations[currentLang].statusP2;
+        s.className = `status-bar ${currentPlayer === 1 ? 'p1-turn' : 'p2-turn'}`;
+    }
+
+    function checkWin(c, r) {
+        const p = boardState[c][r];
+        const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
+        for (let [dc, dr] of dirs) {
+            let cells = [[c, r]];
+            for (let i = 1; i < 4; i++) {
+                if (boardState[c + dc * i]?.[r + dr * i] === p) {
+                    cells.push([c + dc * i, r + dr * i]);
+                } else break;
+            }
+            for (let i = 1; i < 4; i++) {
+                if (boardState[c - dc * i]?.[r - dr * i] === p) {
+                    cells.push([c - dc * i, r - dr * i]);
+                } else break;
+            }
+            if (cells.length >= 4) return cells;
+        }
+        return null;
+    }
+
+    function showWin(player, cells) {
+        cells.forEach(([wc, wr]) => {
+            document.getElementById(`slot-${wc}-${wr}`).classList.add('win');
+        });
+        const t = document.getElementById('win-title');
+        t.innerText = player === 1 ? translations[currentLang].winTitleP1 : translations[currentLang].winTitleP2;
+        t.style.color = player === 1 ? '#ff4757' : '#ffa502';
+        
+        const winOverlay = document.getElementById('win-overlay');
+        const p = winOverlay.querySelector('p');
+        if (p) p.innerText = translations[currentLang].winText;
+        const btnRestart = winOverlay.querySelector('.btn-restart');
+        if (btnRestart) btnRestart.innerText = translations[currentLang].btnPlayAgain;
+        
+        winOverlay.classList.add('show');
+    }
+
+    // ─── LANGUAGE TOGGLE ───────────────────────────────────────────────────
+    function setLanguage(lang) {
+        currentLang = lang;
+        
+        // Update toggles active class
+        document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+        document.getElementById('lang-vi').classList.toggle('active', lang === 'vi');
+        
+        // General page items
+        document.getElementById('page-title').innerText = translations[lang].pageTitle;
+        document.getElementById('page-subtitle').innerText = translations[lang].pageSubtitle;
+        
+        // Status bar
+        updateStatus();
+        
+        // Rules Card
+        document.getElementById('htp-title').innerText = translations[lang].htpTitle;
+        document.getElementById('htp-step-1').innerText = translations[lang].htpStep1;
+        document.getElementById('htp-step-2').innerText = translations[lang].htpStep2;
+        document.getElementById('htp-step-3').innerText = translations[lang].htpStep3;
+        document.getElementById('htp-step-4').innerText = translations[lang].htpStep4;
+        document.getElementById('legend-red').innerText = translations[lang].legendRed;
+        document.getElementById('legend-yellow').innerText = translations[lang].legendYellow;
+        
+        // Teams Panel
+        document.getElementById('teams-title').innerText = translations[lang].teamsTitle;
+        document.getElementById('team-red-label').innerText = translations[lang].redTeam;
+        document.getElementById('team-yellow-label').innerText = translations[lang].yellowTeam;
+        document.getElementById('team-red-input').placeholder = translations[lang].teamsPlaceholder;
+        document.getElementById('team-yellow-input').placeholder = translations[lang].teamsPlaceholder;
+
+        // Update active overlay modal elements if visible
+        const overlay = document.getElementById('overlay');
+        if (overlay && overlay.style.display === 'flex') {
+            displayQuestion();
+            const badge = document.getElementById('player-badge');
+            badge.innerText = currentPlayer === 1 ? translations[lang].badgeRed : translations[lang].badgeYellow;
+            document.getElementById('btn-judge-no').innerText = translations[lang].btnTryAgain;
+            document.getElementById('btn-judge-yes').innerText = translations[lang].btnGoodAnswer;
+        }
+
+        // Update active win card if visible
+        const winOverlay = document.getElementById('win-overlay');
+        if (winOverlay && winOverlay.classList.contains('show')) {
+            const title = document.getElementById('win-title');
+            title.innerText = currentPlayer === 1 ? translations[lang].winTitleP1 : translations[lang].winTitleP2;
+            winOverlay.querySelector('p').innerText = translations[lang].winText;
+            document.getElementById('btn-play-again').innerText = translations[lang].btnPlayAgain;
+        }
+    }
+
+    // ─── TEAM STORAGE PERSISTENCE ──────────────────────────────────────────
+    function saveTeams() {
+        const redVal = document.getElementById('team-red-input').value;
+        const yellowVal = document.getElementById('team-yellow-input').value;
+        localStorage.setItem('c4_simple_red_team', redVal);
+        localStorage.setItem('c4_simple_yellow_team', yellowVal);
+    }
+
+    function loadTeams() {
+        const redVal = localStorage.getItem('c4_simple_red_team') || '';
+        const yellowVal = localStorage.getItem('c4_simple_yellow_team') || '';
+        document.getElementById('team-red-input').value = redVal;
+        document.getElementById('team-yellow-input').value = yellowVal;
+    }
+
+    // Initialize Game
+    initBoard();
+    loadTeams();
+    setLanguage('en');
+</script>
+</body>
+</html>

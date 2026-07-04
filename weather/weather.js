@@ -1,0 +1,32 @@
+const WEATHER_DATA = [
+  { "w": "Sunny", "file": "imgi_2_1615716225_179615_gif-url.gif", "emoji": "☀️", "th": "แดดจัด" },
+  { "w": "Stormy", "file": "imgi_3_1615716258_820230_gif-url.gif", "emoji": "⛈️", "th": "พายุฝนฟ้าคะนอง" },
+  { "w": "Rainy", "file": "imgi_4_1615716342_95948_gif-url.gif", "emoji": "🌧️", "th": "ฝนตก" },
+  { "w": "Windy", "file": "imgi_5_1615716584_1865459_gif-url.gif", "emoji": "💨", "th": "ลมแรง" },
+  { "w": "Snowy", "file": "imgi_6_1615716638_1804526_gif-url.gif", "emoji": "❄️", "th": "หิมะตก" },
+  { "w": "Cloudy", "file": "imgi_8_1615716791_1073231_gif-url.gif", "emoji": "☁️", "th": "มีเมฆมาก" },
+  { "w": "Partly Cloudy", "file": "imgi_9_1615716828_318451_gif-url.gif", "emoji": "⛅", "th": "มีเมฆเป็นบางส่วน" },
+  { "w": "Hot", "file": "imgi_10_1615716867_887673_gif-url.gif", "emoji": "🥵", "th": "ร้อน" },
+  { "w": "Cold", "file": "imgi_11_1615716965_892623_gif-url.gif", "emoji": "🥶", "th": "หนาว" },
+  { "w": "Tornado", "file": "imgi_12_1640849054_10603_url.gif", "emoji": "🌪️", "th": "ทอร์นาโด" },
+  { "w": "Rainbow", "file": "imgi_13_1640849066_41050_url.gif", "emoji": "🌈", "th": "รุ้งกินน้ำ" },
+  { "w": "Foggy", "file": "imgi_14_1640849077_109118_url.gif", "emoji": "🌁", "th": "มีหมอก" },
+  { "w": "Hail", "file": "imgi_15_1640849636_278485_gif-url.gif", "emoji": "🌨️", "th": "ลูกเห็บตก" },
+  { "w": "Clear Night", "file": "imgi_16_1640849101_519990_url.gif", "emoji": "🌃", "th": "คืนฟ้าโปร่ง" },
+  { "w": "Cloudy Night", "file": "imgi_17_1640849112_93165_url.gif", "emoji": "🌙", "th": "คืนมีเมฆบางส่วน" },
+  { "w": "Snowflake", "file": "imgi_18_1640849122_902211_url.gif", "emoji": "❄️", "th": "เกล็ดหิมะ" },
+  { "w": "Raindrop", "file": "imgi_19_1640849146_22366_url.gif", "emoji": "💧", "th": "หยดน้ำฝน" },
+  { "w": "Umbrella", "file": "imgi_20_1640849160_48469_url.gif", "emoji": "☂️", "th": "ร่ม" },
+  { "w": "Sunny Day", "file": "imgi_21_1640849171_19492_url.gif", "emoji": "🕶️", "th": "แดดจ้า" },
+  { "w": "Sunshower", "file": "imgi_22_1640849184_87798_url.gif", "emoji": "🌦️", "th": "ฝนตกแดดออก" },
+  { "w": "Weather Vane", "file": "imgi_23_1640849194_344218_url.gif", "emoji": "🧭", "th": "ศรลม" },
+  { "w": "Lightning", "file": "imgi_24_1640849224_55904_url.gif", "emoji": "⚡", "th": "ฟ้าแลบ" },
+  { "w": "Flood", "file": "imgi_25_1640849241_190676_url.gif", "emoji": "🌊", "th": "น้ำท่วม" },
+  { "w": "Drought", "file": "imgi_26_1640849251_40971_url.gif", "emoji": "🌵", "th": "ภัยแล้ง" },
+  { "w": "Hurricane", "file": "imgi_28_1640849268_606516_url.gif", "emoji": "🌀", "th": "พายุเฮอริเคน" },
+  { "w": "Snowman", "file": "imgi_29_1640849277_815375_url.gif", "emoji": "☃️", "th": "ตุ๊กตาหิมะ" },
+  { "w": "Thermometer", "file": "imgi_30_1640849288_69926_url.gif", "emoji": "🌡️", "th": "เทอร์โมมิเตอร์" },
+  
+  // Extra Wild Card item
+  { "w": "Wild Card", "file": "", "emoji": "🌀", "th": "การ์ดสลับตำแหน่ง" }
+];
